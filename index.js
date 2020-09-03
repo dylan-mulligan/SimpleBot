@@ -1,12 +1,25 @@
 const Discord = require('discord.js');
 const bot = new Discord.Client();
+const fs = require("fs");
 
-const token = "";
+let token;
+fs.readFile("../Tokens/SharkPogBot.txt", 'utf8', (err, data) => {
+    if(err) {
+        console.log(err);
+    }
+    else {;
+        token = data.toString().trim();
+    }
+})
+
+token = "";
 
 const PREFIX = '-';
 const HELPMSG = "Invalid Arguments, use -help <command> for help"
+const VERSION = "0.0.1";
 
-const chatCommands = require('./chatCommands.js');
+const userData = require('./data/user-data.json');
+const { version } = require('os');
 
 bot.login(token)
 
@@ -25,10 +38,18 @@ bot.on('message', message=>{
     .setAuthor("Shark Pog :shark:","","https://www.youtube.com/watch?v=cR3sT2ieGd0")
 
     if(message.author.id !== "750833421252689930") {
+
+        if (!userData[message.author.id]) {
+            userData[message.author.id] = {
+                sharkPogs: 0
+              }
+        }
+
         if(message.content.search("shark") !== -1 || message.content.search("pog") !== -1) {
             message.reply("Shark Pog :shark:");
             message.channel.send(sharkPogEmbed);
             message.channel.send("https://www.youtube.com/watch?v=cR3sT2ieGd0 :shark:");
+            userData[message.author.id].sharkPogs++;
         }
         var prefix = message.content.substring(0, PREFIX.length);
         if(prefix.startsWith(PREFIX)) {
@@ -69,6 +90,23 @@ bot.on('message', message=>{
                             message.reply(HELPMSG);
                         }
                         break;
+                    case "stats":
+                        if(userData[message.author.id]) {
+                            let sharkPogs = userData[message.author.id].sharkPogs;
+                            message.channel.send("You have triggered Shark Pog " + sharkPogs + " times.");
+                            if(sharkPogs < 100) {message.channel.send("Rookie numbers :frowning:");}
+                            else if(sharkPogs < 250) {message.channel.send("Not bad :neutral_face:");}
+                            else if(sharkPogs < 500) {message.channel.send("A true shark pogger :smirk:");}
+                            else if(sharkPogs < 1000) {message.channel.send("One dedicated shark :shark:");}
+                            else if(sharkPogs > 1000) {message.channel.send("Shark pog warlord :tired_face: :shark:");}
+                        }
+                        else {
+                            message.channel.send("No stats to display...");
+                        }
+                        break;
+                    case "version":
+                        message.channel.send("The current version is " + VERSION);
+                        break;
                     case "embed":
                         message.channel.send(embedVideo("Title", "Find the video [here](https://www.youtube.com/watch?v=_0QrvLcL-ng)", "https://www.youtube.com/watch?v=_0QrvLcL-ng", "https://www.youtube.com/watch?v=_0QrvLcL-ng"))
                     case "help":
@@ -84,9 +122,11 @@ bot.on('message', message=>{
                 else if(messageOutput === null) {
                     message.reply(HELPMSG);
                 }
-                
             }
         }
+
+        fs.writeFileSync("./data/user-data.json", JSON.stringify(userData, null, 2), console.error)
+
     }
 })
 
