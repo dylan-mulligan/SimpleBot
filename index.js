@@ -3,6 +3,7 @@ const bot = new Discord.Client();
 const fs = require("fs");
 
 let token;
+/*
 fs.readFile("../Tokens/SharkPogBot.txt", 'utf8', (err, data) => {
     if(err) {
         console.log(err);
@@ -11,6 +12,7 @@ fs.readFile("../Tokens/SharkPogBot.txt", 'utf8', (err, data) => {
         token = data.toString().trim();
     }
 })
+*/
 
 token = "";
 
@@ -56,13 +58,8 @@ bot.on('message', message=>{
             if(message.content != "") {
                 let args = message.content.substring(PREFIX.length).split(" ");
                 let messageOutput = "";
-                /*
-                const embed = new Discord.MessageEmbed()
-                .setTitle("Sample Title")
-                .setColor(0xff0000)
-                .setDescription("Sample Description")
-                .setURL("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
-                */
+                let embedOutput = "";
+                let embedTitle = "";
     
                 switch (args[0]) {
                     case "ping":
@@ -72,19 +69,20 @@ bot.on('message', message=>{
                         if(args[1] && !isNaN(args[1])) {
                             let roll = "Your Roll: ";
                             let rNum = parseInt(args[1]);
-                            console.log(rNum);
-                            for(let i = 0; i < rNum; i++) {
-                                roll += randomNumber(1,6) + " ";
+                            if(rNum > 0 && rNum < 20) {
+                                for(let i = 0; i < rNum; i++) {
+                                    roll += randomNumber(1,6) + " ";
+                                }
+                                embedOutput = roll;
+                                embedTitle = message.author.username;
                             }
-                            messageOutput = roll;
                         }
                         else {messageOutput = null;}
                         break;
                     case "clear":
                         if(args[1] && !isNaN(args[1]) && args[1] > 0) {
                             message.channel.bulkDelete(args[1]);
-                            message.channel.send("Cleared " + args[1] + " messages.")
-                            return;
+                            embedOutput = "Cleared **" + args[1] + "** messages.";
                         }
                         else {
                             message.reply(HELPMSG);
@@ -93,19 +91,21 @@ bot.on('message', message=>{
                     case "stats":
                         if(userData[message.author.id]) {
                             let sharkPogs = userData[message.author.id].sharkPogs;
-                            message.channel.send("You have triggered Shark Pog " + sharkPogs + " times.");
-                            if(sharkPogs < 100) {message.channel.send("Rookie numbers :frowning:");}
-                            else if(sharkPogs < 250) {message.channel.send("Not bad :neutral_face:");}
-                            else if(sharkPogs < 500) {message.channel.send("A true shark pogger :smirk:");}
-                            else if(sharkPogs < 1000) {message.channel.send("One dedicated shark :shark:");}
-                            else if(sharkPogs > 1000) {message.channel.send("Shark pog warlord :tired_face: :shark:");}
+                            embedOutput = "You have triggered Shark Pog **" + sharkPogs + "** times.\n";
+                            embedTitle = message.author.username;
+                            if(sharkPogs < 50) {embedOutput += "Rookie numbers :frowning:";}
+                            else if(sharkPogs < 100) {embedOutput += "Not bad :neutral_face:";}
+                            else if(sharkPogs < 250) {embedOutput += "A true shark pogger :smirk:";}
+                            else if(sharkPogs < 500) {embedOutput += "One dedicated shark :shark:";}
+                            else if(sharkPogs > 500) {embedOutput += "Shark pog warlord :tired_face: :shark:";}
                         }
                         else {
-                            message.channel.send("No stats to display...");
+                            embedOutput = "No stats to display...";
+                            embedTitle = message.author.username;
                         }
                         break;
                     case "version":
-                        message.channel.send("The current version is " + VERSION);
+                        embedOutput = "The current version is " + VERSION;
                         break;
                     case "embed":
                         message.channel.send(embedVideo("Title", "Find the video [here](https://www.youtube.com/watch?v=_0QrvLcL-ng)", "https://www.youtube.com/watch?v=_0QrvLcL-ng", "https://www.youtube.com/watch?v=_0QrvLcL-ng"))
@@ -121,6 +121,10 @@ bot.on('message', message=>{
                 }
                 else if(messageOutput === null) {
                     message.reply(HELPMSG);
+                }
+                else if(embedOutput) {
+                    let embed = new Discord.MessageEmbed().setDescription(embedOutput).setTitle(embedTitle);
+                    message.channel.send(embed);
                 }
             }
         }
