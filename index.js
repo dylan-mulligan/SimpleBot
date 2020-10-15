@@ -21,15 +21,13 @@ bot.on('ready', () =>{
 
 bot.on('message', message=>{
     if(message.author.id !== "750833421252689930") {
-        if (!userData[message.author.id]) {
-            //userData[message.author.id] = newUser() //WIP
-        }
-
         var prefix = message.content.substring(0, PREFIX.length);
         if(prefix.startsWith(PREFIX)) {
             if(message.content !== "") {
                 let args = message.content.substring(PREFIX.length).split(" ");
-    
+                if (!userData[message.author.id]) {
+                    //userData[message.author.id] = newUser() //TODO
+                }
                 CLI(message, args)
             }
         }
@@ -40,10 +38,10 @@ bot.on('message', message=>{
 })
 
 function rollDie(sides) {
-    return Math.round(Math.random() * sides); 
+    return Math.round(Math.random() * sides);
 }
 
-function embedVideo(videoTitle, videoDescription, videoURL, videoThumbnailURL) {
+function createEmbed(title, description, url=null, thumbnail=null) {
     let embed = new Discord.MessageEmbed()
     .setTitle(videoTitle)
     .setDescription(videoDescription)
@@ -60,6 +58,23 @@ function getToken() {
     catch(e) {
         console.log('Error:', e.stack);
     }
+}
+
+function checkBalance(UID, amount) {
+    try {
+        let data = fs.readFileSync('data/user-data.json', 'utf8');
+        if(data[UID] != null) {
+            return data[UID].walletBalance >= amount
+        }
+        return data
+    } 
+    catch(e) {
+        console.log('Error:', e.stack);
+    }
+}
+
+function getAmount(rawAmount) { //TODO
+    return
 }
 
 function CLI(message, args) {
@@ -101,7 +116,18 @@ function CLI(message, args) {
             }
             return;
         case "gamble":
-            return;
+            if(args.length > 1) {
+                getAmount(args[1])
+                checkBalance(message.author.id, amount)
+            }
+            let title = "**" + message.author.username + "'s gambling game**"
+            let description = ""
+            let playerScore = rollDie(6) + rollDie(6)
+            let botScore = rollDie(6) + rollDie(6)
+            if(playerScore > botScore) {
+                description = ""
+            }
+            createEmbed()
         case "blackjack":
             return;
         case "version":

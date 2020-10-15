@@ -1,5 +1,7 @@
 {
   "161637430540238849": {
-    "sharkPogs": 16
+    "walletBalance": 2000,
+    "bankBalance": 1000,
+    "bankCapacity": 5000
   }
 }
