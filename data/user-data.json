@@ -1,7 +1,14 @@
 {
   "161637430540238849": {
     "walletBalance": 2000,
+    "bankBalance": 5000,
+    "bankCapacity": 5000,
+    "username": "EDP445"
+  },
+  "750833421252689930": {
+    "walletBalance": 5000,
     "bankBalance": 1000,
-    "bankCapacity": 5000
+    "bankCapacity": 3000,
+    "username": "SharkPogBot"
   }
 }
