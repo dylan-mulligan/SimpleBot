@@ -6,28 +6,28 @@ let token = getToken();
 var userData = require('./data/user-data.json');
 
 const PREFIX = '-';
-const HELP_MESSAGE = "Invalid Arguments, use -help <command> for help"
+const HELP_MESSAGE = "Invalid Arguments, use -help <command> for help";
 const VERSION = "0.1";
-const BOT_ID = "750833421252689930"
-const MIN_AMOUNT = 500
-const BOT_NAME = "SharkPog Bot"
+const BOT_ID = "750833421252689930";
+const MIN_AMOUNT = 500;
+const BOT_NAME = "SharkPog Bot";
 
 
-console.log("Bot logging in...")
+console.log("Bot logging in...");
 bot.login(token);
 
 
 try { //TODO: PROPER TRY/CATCH FOR INVALID TOKEN
     bot.on('ready', () =>{
-    console.log("Login successful!")
+    console.log("Login successful!");
     }) 
 }
-catch { console.log("Login failed! Exiting..."); return }
+catch { console.log("Login failed! Exiting..."); return; }
 
 
 bot.on('message', message=>{
-    
-    if(message.author.id !== BOT_ID) {
+    let UID = message.author.id
+    if(UID !== 1) { //replace 1 with BOT_ID
         //try { data = JSON.parse(fs.readFileSync('data/user-data.json', 'utf8')); }
         //catch(e) { console.log('Error:', e.stack); }
         
@@ -35,20 +35,27 @@ bot.on('message', message=>{
         if(prefix.startsWith(PREFIX)) {
             if(message.content !== "") {
                 let args = message.content.substring(PREFIX.length).split(" ");
-                if (!userData[message.author.id]) {
-                    //userData[message.author.id] = createUser() //TODO
+                if (!userData[UID]) {
+                    createUser(UID);
                 }
                 
-                CLI(message, args)
+                CLI(message, args);
             }
         }
-
-        fs.writeFileSync("./data/user-data.json", JSON.stringify(userData, null, 2), console.error)
+        userData[UID].username = message.author.username //poor implementation of username updating every message //TODO: FIX THIS POOP
+        fs.writeFileSync("./data/user-data.json", JSON.stringify(userData, null, 2), console.error);
         //try { data = JSON.parse(fs.readFileSync('data/user-data.json', 'utf8')); }
         //catch(e) { console.log('Error:', e.stack); }
-
     }
 })
+
+function createUser(UID, message) {
+    userData[UID] = {}
+    userData[UID].walletBalance = 5000
+    userData[UID].bankBalance = 1000
+    userData[UID].bankCapacity = 3000
+    userData[UID].username = message.author.username
+}
 
 function rollDie(sides) {
     return Math.round(Math.random() * sides);
@@ -60,13 +67,13 @@ function createEmbed(title, description, thumbnail=null, url=null) {
     .setDescription(description)
     .setImage(thumbnail)
     .setURL(url);
-    return embed
+    return embed;
 }
 
 function getToken() {    
     try {
         let token = fs.readFileSync('../Tokens/SharkPogBot.txt', 'utf8');
-        return token
+        return token;
     } 
     catch(e) {
         console.log('Error:', e.stack);
@@ -98,7 +105,7 @@ function gamble(message, args) {
         let gameResult = playerScore > botScore;
         let gambleAmount = checkBal['amount'];
         let winnings = calculateWinnings();
-        let description = ""
+        let description = "";
 
         //add/deduct money
         if(gameResult) { 
@@ -126,7 +133,7 @@ function checkBalance(UID, amount, message) {
     if(userData[UID] != null) {
         let maxAmount = userData[UID].walletBalance;
         amount = getAmount(amount, maxAmount);
-        let minimumCheck = amount >= MIN_AMOUNT
+        let minimumCheck = amount >= MIN_AMOUNT;
         
         if(amount == -1) { message.channel.send("You only have " + maxAmount + " coins."); }
         else if(amount == -3) { message.channel.send("Invalid amount given."); }
@@ -134,12 +141,12 @@ function checkBalance(UID, amount, message) {
 
         return {minimumCheck, amount};
     }
-    console.log("UserData not found")
+    console.log("User not recognized: " + UID);
     return {minimumCheck: false, amount: 0}
 }
 
 function getAmount(rawAmount, maxAmount=null) {
-    if(rawAmount == "max" || rawAmount == "all") {
+    if((rawAmount == "max" || rawAmount == "all") && maxAmount !== null) {
         return maxAmount;
     }
     else if(!isNaN(rawAmount)) {
@@ -155,52 +162,137 @@ function getAmount(rawAmount, maxAmount=null) {
     else { return -3; } //if not valid amount return -3
 }
 
-function depositWallet(UID, amount) { //TODO
+function depositWallet(UID, amount) {
     if(!isNaN(amount)) {
-        console.log("Adding " + amount + " to user " + UID + "'s account.");
-        userData[UID].walletBalance += parseInt(amount);
+        amount = parseInt(amount)
+        console.log("Adding " + amount + " to user " + UID + "'s wallet.");
+        userData[UID].walletBalance += amount;
+        return amount
     }
-    else { console.log("Invalid amount!") }
-    return parseInt(amount);
+    else { console.log("Invalid amount!"); return -1; }
 }
 
-function withdrawWallet(UID, amount) { //TODO
+function withdrawWallet(UID, amount) {
     if(!isNaN(amount)) {
+        amount = parseInt(amount)
         balance = userData[UID].walletBalance;
         if(amount > balance) {amount = balance;}
-
-        console.log("Removing " + amount + " from user " + UID + "'s account.");
-        userData[UID].walletBalance -= amount;
+        if(amount > 0) {
+            console.log("Removing " + amount + " from user " + UID + "'s wallet.");
+            userData[UID].walletBalance -= amount;
+            return amount;
+        }
+        else { console.log("Nothing to withdraw!"); return -2; }
     }
-    else { console.log("Invalid amount!") }
-    return amount;
+    else { console.log("Invalid amount!"); return -1; }
+}
+
+function depositBank(UID, amount) {
+    if(!isNaN(amount)) {
+        amount = parseInt(amount);
+        let remainingBalance = getBankCapacity(UID) - getBankBalance(UID);
+        if(remainingBalance == 0) { return -1; }
+        if(amount > remainingBalance) { amount = remainingBalance; }
+        if(amount > 0) {
+            console.log("Adding " + amount + " to user " + UID + "'s bank account.");
+            userData[UID].bankBalance += amount;
+            return amount;
+        }
+        else { console.log("Nothing to deposit!"); return -2; }
+    }
+    else { console.log("Invalid amount!"); return -1; }
+}
+
+function withdrawBank(UID, amount) {
+    if(!isNaN(amount)) {
+        amount = parseInt(amount)
+        balance = userData[UID].bankBalance;
+        if(amount > balance) {amount = balance;}
+        if(amount > 0) {
+            console.log("Removing " + amount + " from user " + UID + "'s bank account.");
+            userData[UID].bankBalance -= amount;
+            return amount;
+        }
+        else { console.log("Nothing to withdraw!"); return -2; }
+    }
+    else { console.log("Invalid amount!"); return -1; }
+}
+
+function deposit(message, UID, amount) {
+    let tempAmount = getAmount(amount, getWalletBalance(UID));
+    if(tempAmount >= 0) {
+        amount = tempAmount;
+        if(validateUID(UID)) {
+            let depoited = depositBank(UID, amount)
+            if(depoited == -1) {
+                message.channel.send("Your bank is full!");
+                return;
+            }
+            else if(depoited == -2) {
+                message.channel.send("You can't deposit nothing!");
+                return;
+            }
+            if(!withdrawWallet(UID, depoited)) { 
+                message.channel.send("You do not have " + amount + " coins to deposit.");
+                return;
+            }
+            message.channel.send("You deposited " + depoited + " coins to your bank account.");
+            return;
+        }
+    }
+    else { message.channel.send("You do not have " + amount + " coins in your wallet."); }
+}
+
+function withdraw(message, UID, amount) {
+    let tempAmount = getAmount(amount, getBankBalance(UID));
+    if(tempAmount >= 0) {
+        amount = tempAmount;
+        if(validateUID(UID)) {
+            let withdrawn = withdrawBank(UID, amount);
+            if(withdrawn == -1) { 
+                message.channel.send("You do not have " + amount + " coins to withdraw.");
+                return;
+            }
+            else if(withdrawn == -2) {
+                message.channel.send("You can't withdraw nothing!");
+                return;
+            }
+            depositWallet(UID, withdrawn)
+            message.channel.send("You withdrew " + amount + " coins from your bank account.");
+            return;
+        }
+    }
+    else { message.channel.send("You do not have " + amount + " coins in your bank account."); }
 }
 
 function calculateWinnings(amount) { //TODO
-    return 0
+    return 2 * amount;
 }
 
 function validateNumericArgument(args, index) {
-    return (args[index] && !isNaN(args[index]))
+    return (args[index] && !isNaN(args[index]));
 }
 
 function getPrintableUserString(UID) {
-    return "<@!" + UID +">"
+    return "<@!" + UID +">";
+}
+
+function getRawUID(UID) {
+    return UID.substring(3, UID.length-1);
 }
 
 function validateUID(UID) {
-    UID = UID.substring(3, UID.length-1)
-    return (userData[UID] !== null && userData[UID] !== undefined)
+    return (userData[UID] !== null && userData[UID] !== undefined);
 }
 
 function giveMoney(message, args) {
     let UID = message.author.id;
-    let coins = 0
-    let amount = 0
+    let coins = 0;
+    let amount = 0;
     
     if(args.length > 2) { //ex -givemoney @sampleUser 1000
-        UID = args[1];
-        coins = args[2]
+        UID = getRawUID(args[1]);
+        coins = args[2];
         if(!validateUID(UID)) { message.channel.send("Invalid user specified."); return; }
         if(!validateNumericArgument(args, 2)) { message.channel.send("Invalid amount specified."); return; }
         amount = getAmount(coins)
@@ -219,12 +311,12 @@ function giveMoney(message, args) {
 
 function takeMoney(message, args) {
     let UID = message.author.id;
-    let coins = 0
-    let amount = 0
-    let balance = 0
+    let coins = 0;
+    let amount = 0;
+    let balance = 0;
 
     if(args.length > 2) { //ex -takemoney @sampleUser 1000
-        UID = args[1];
+        UID = getRawUID(args[1]);
         coins = args[2]
         if(!validateUID(UID)) { message.channel.send("Invalid user specified."); return; }
         balance = userData[UID].walletBalance
@@ -234,9 +326,9 @@ function takeMoney(message, args) {
         else { message.channel.send("Invalid amount specified."); return; }
     }
     else { //ex -takemoney 1000
-        coins = args[1]
-        balance = userData[UID].walletBalance
-        amount = getAmount(coins, balance)
+        coins = args[1];
+        balance = userData[UID].walletBalance;
+        amount = getAmount(coins, balance);
 
         if(amount >= 0) { withdrawWallet(UID, amount); }
         else { message.channel.send("Invalid amount specified."); return; }
@@ -244,6 +336,59 @@ function takeMoney(message, args) {
     
     message.channel.send("Taken " + amount + " coins from " + getPrintableUserString(UID)); return;
 }
+
+function getWalletBalance(UID) {
+    balance = userData[UID].walletBalance;
+    if(balance !== null && balance !== undefined) {
+        return balance;
+    }
+    else { console.log("User not recognized: " + UID); }
+}
+
+function getBankBalance(UID) {
+    balance = userData[UID].bankBalance;
+    if(balance !== null && balance !== undefined) {
+        return balance;
+    }
+    else { console.log("User not recognized: " + UID); }
+}
+
+function getBankCapacity(UID) {
+    if(UID !== undefined) { 
+        capacity = userData[UID].bankCapacity;
+        if(capacity !== null && capacity !== undefined) {
+            return capacity;
+        }
+        else { console.log("User not recognized: " + UID); }
+    }
+}
+
+function getBalances(message, args) {
+    let UID = message.author.id;
+    if(args.length > 1) {
+        args[1] = getRawUID(args[1])
+        if(validateUID(args[1])) { UID = args[1]; }
+    }
+    
+    if(!validateUID(UID)) { message.channel.send("Invalid user specified."); return; }
+    let walletBalance = getWalletBalance(UID);
+    let bankBalance = getBankBalance(UID);
+    let totalBalance = parseInt(bankBalance) + parseInt(walletBalance);
+    let title = "**" + userData[UID].username + "'s balance**";
+    let description = "**Wallet**: " + walletBalance +
+    "\n**Bank**: " + bankBalance + "/" + getBankCapacity(UID) +
+    "\n**Total**: " + totalBalance;
+
+    message.channel.send(createEmbed(title, description));
+    return totalBalance;
+}
+
+/*
+function getUser(UID) {
+    let user = bot.users.fetch(UID);
+    user.then(value => { return value });
+}
+*/
 
 function CLI(message, args, userData) {
     switch (args[0]) {
@@ -255,15 +400,15 @@ function CLI(message, args, userData) {
                 roll(message, args)
             }
             else {
-                message.reply(HELP_MESSAGE);
+                message.channel.send(HELP_MESSAGE);
             }
             return;
         case "clear":
-            if(validateNumericArgument(args, 1) && args[1] > 0) {
+            if(validateNumericArgument(args, 1) && 100 >= args[1] > 0) {
                 message.channel.bulkDelete(args[1]);
                 message.channel.send("Cleared **" + args[1] + "** messages.");
             }
-            else { message.reply(HELP_MESSAGE); }
+            else { message.channel.send(HELP_MESSAGE); }
             return;
         case "stats":
             if(userData[message.author.id]) {
@@ -274,11 +419,8 @@ function CLI(message, args, userData) {
             }
             return;
         case "bal": case "balance":
-            if(args.length > 1) {
-                //TODO
-            }
-            else { message.reply(HELP_MESSAGE); }
-            return
+            getBalances(message, args);
+            return;
         case "gamble":
             if(args.length > 1) {
                 gamble(message, args)
@@ -290,17 +432,30 @@ function CLI(message, args, userData) {
             return;
         case "help":
             return;
-        case "givemoney":
+        case "givemoney": //TODO: Permissions
             if(args.length > 1) {
                 giveMoney(message, args)
             }
-            else { message.reply(HELP_MESSAGE); }
+            else { message.channel.send(HELP_MESSAGE); }
             return;
-        case "takemoney":
+        case "takemoney": //TODO: Permissions
             if(args.length > 1) {
                 takeMoney(message, args)
             }
-            else { message.reply(HELP_MESSAGE); }
+            else { message.channel.send(HELP_MESSAGE); }
+            return;
+        case "send":
+            if(args.length > 1) { message.channel.send(args[1]); }
+            return;
+        case "dep": case "deposit":
+            if(args.length > 1) { 
+                deposit(message, message.author.id, args[1])
+            }
+            return;
+        case "with": case "withdraw":
+            if(args.length > 1) { 
+                withdraw(message, message.author.id, args[1])
+            }
             return;
         default:
             return;
