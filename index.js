@@ -9,18 +9,21 @@
 const Discord = require('discord.js');
 const bot = new Discord.Client();
 const fs = require('fs');
+//const blackjack = require("./blackjack.js")
+//const gamble = require("./blackjack.js")
 
 //Retrieving bot token (password)
 let token = getToken();
 var userData = require('./data/user-data.json');
 
 //Global constants
-const PREFIX = '-';
+const PREFIX = '=';
 const HELP_MESSAGE = "Invalid Arguments, use -help <command> for help";
 const VERSION = "0.1";
 const BOT_ID = "750833421252689930";
 const MIN_AMOUNT = 500;
 const BOT_NAME = "SharkPog Bot";
+let guild = null
 
 //Bot authentication
 console.log("Bot logging in...");
@@ -34,9 +37,14 @@ catch { console.log("Login failed! Exiting..."); return; }
 
 //Event handler for all messages across all channels
 bot.on('message', message=>{
+    if(guild == null) { guild = message.guild; } //sets current server before each message
+    guild.roles.fetch().then(async roles => { //creates admin role for the bot if it does not exist
+        if(!roles.cache.find(r => r.name === 'SharkPogBotAdmin')) {
+            await roles.create({data: {name: "SharkPogBotAdmin", color: "RED"}});
+        }
+    })
     let UID = message.author.id
-    if(UID !== BOT_ID) {
-
+    if(!message.author.bot) {
         //try { data = JSON.parse(fs.readFileSync('data/user-data.json', 'utf8')); } //OUTDATED DATA HANDLING
         //catch(e) { console.log('Error:', e.stack); }
         
@@ -45,24 +53,24 @@ bot.on('message', message=>{
         if(prefix.startsWith(PREFIX)) {
             if(message.content !== "") {
                 let args = message.content.substring(PREFIX.length).split(" "); //tokenizes message
-                if (!userData[UID]) { createUser(UID); } //ensures user exists within data structure to avoid errors
+                if (!userData[UID]) { createUser(UID, message.author.username); } //ensures user exists within data structure to avoid errors
                 CLI(message, args); //main CLI function
             }
         }
         userData[UID].username = message.author.username //poor implementation of username updating every message //TODO: FIX THIS POOP
         fs.writeFileSync("./data/user-data.json", JSON.stringify(userData, null, 2), console.error);
-
+        guild = null //resets current server after each message
         //try { data = JSON.parse(fs.readFileSync('data/user-data.json', 'utf8')); } //OUTDATED DATA HANDLING
         //catch(e) { console.log('Error:', e.stack); }
     }
 })
 
-function createUser(UID, message) { //creates new user in user-data.json with a given UID
+function createUser(UID, username) { //creates new user in user-data.json with a given UID
     userData[UID] = {}
     userData[UID].walletBalance = 5000
     userData[UID].bankBalance = 1000
-    userData[UID].bankCapacity = 3000
-    userData[UID].username = message.author.username
+    userData[UID].bankCapacity = 20000
+    userData[UID].username = username
     userData[UID].inventory = {}
 }
 
@@ -117,7 +125,7 @@ function gamble(message, args) {
         let botScore = rollDie(6) + rollDie(6);
         let gameResult = playerScore > botScore;
         let gambleAmount = checkBal['amount'];
-        let winnings = calculateWinnings();
+        let winnings = calculateWinnings(gambleAmount);
         let description = "";
 
         //add/deduct money
@@ -276,7 +284,7 @@ function withdraw(message, UID, amount) { //withdraws amount from user's bank to
 }
 
 function calculateWinnings(amount) { //calculates a user's winnings //TODO: More complex winnings
-    return 2 * amount;
+    return amount;
 }
 
 function validateNumericArgument(args, index) { //validates a value args[index] exists and is numeric
@@ -400,6 +408,38 @@ function getUser(UID) {
 }
 */
 
+function getUsername(UID) { //validates the given UID and returns the username of the specified user
+    if(!validateUID(UID)) { console.log("Invalid user specified."); return; }
+    return userData[UID].username
+}
+
+function share(message, args) { //gives a specified amount of coins with a specified user
+    let UID = getRawUID(args[1]);
+    let amount = args[2];
+    let tempAmount = amount;
+    amount = getAmount(amount);
+    if(!validateUID(UID)) { message.channel.send("Invalid user specified."); return; }
+    if(amount > 0) {
+        withdrawWallet(message.author.id, amount);
+        depositWallet(UID, amount);
+        message.channel.send("You gave " + amount + " coins to " + getUsername(UID) + ".")
+    }
+    else if(amount == -1){ 
+        message.channel.send("You do not have " + tempAmount + " coins to give."); return; 
+    }
+    else if(amount == -3) {
+        message.channel.send("Invalid amount specified."); return; 
+    }
+}
+
+function hasBotAdminPerm(UID) { //checks if given user has bot admin role
+    guild.members.fetch(async member => {
+        if(member.id = UID) {
+            return member.roles.cache.fetch(role => role.name === 'SharkPogBotAdmin')
+        }
+    })
+}
+
 function CLI(message, args) { //main command line interface that parses user data and passes it to relevant functions
     //switch handles user entered command
     switch (args[0]) {
@@ -427,7 +467,13 @@ function CLI(message, args) { //main command line interface that parses user dat
             if(args.length > 1) {
                 gamble(message, args)
             }
+            else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+            return;
         case "blackjack": //calls blackjack function
+            if(args.length > 1) {
+                blackjack.run(message, args)
+            }
+            else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
             return;
         case "version": //displays bot version
             message.channel.send("The current version is " + VERSION);
@@ -435,7 +481,8 @@ function CLI(message, args) { //main command line interface that parses user dat
         case "help": //displays command help page
             return;
         case "givemoney": //calls giveMoney function  //TODO: Permissions
-            if(args.length > 1) {
+            hasBotAdminPerm(message.author.id)
+            if(false && args.length > 1) {
                 giveMoney(message, args)
             }
             else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
@@ -448,16 +495,25 @@ function CLI(message, args) { //main command line interface that parses user dat
             return;
         case "send": //sends a specified message from the bot
             if(args.length > 1) { message.channel.send(args[1]); }
+            else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
             return;
         case "dep": case "deposit": //calls deposit function
             if(args.length > 1) { 
                 deposit(message, message.author.id, args[1])
             }
+            else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
             return;
         case "with": case "withdraw": //calls withdraw function
             if(args.length > 1) { 
                 withdraw(message, message.author.id, args[1])
             }
+            else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+            return;
+        case "share":
+            if(args.length > 2) {
+                share(message, args)
+            }
+            else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
             return;
         default:
             return;
