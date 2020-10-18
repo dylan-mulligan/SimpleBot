@@ -157,7 +157,7 @@ function gamble(message, args) { //TODO: handle tie
 }
 
 function checkBalance(UID, amount, message) { //checks if the user has the specified amount in their wallet
-    if(userData[UID] != null) {
+    if(validateUID(UID)) {
         let maxAmount = userData[UID].walletBalance;
         amount = getAmount(amount, maxAmount);
         let minimumCheck = amount >= MIN_AMOUNT;
@@ -190,7 +190,7 @@ function getAmount(rawAmount, maxAmount=null) { //formats amount input into a va
 }
 
 function depositWallet(UID, amount) { //depoist amount into user's wallet
-    if(!isNaN(amount)) {
+    if(!isNaN(amount) && validateUID(UID)) {
         amount = parseInt(amount)
         console.log("Adding " + amount + " to user " + UID + "'s wallet.");
         userData[UID].walletBalance += amount;
@@ -200,7 +200,7 @@ function depositWallet(UID, amount) { //depoist amount into user's wallet
 }
 
 function withdrawWallet(UID, amount) { //withdraw amount from user's wallet
-    if(!isNaN(amount)) {
+    if(!isNaN(amount) && validateUID(UID)) {
         amount = parseInt(amount)
         balance = userData[UID].walletBalance;
         if(amount > balance) {amount = balance;}
@@ -215,7 +215,7 @@ function withdrawWallet(UID, amount) { //withdraw amount from user's wallet
 }
 
 function depositBank(UID, amount) { //depoist amount into user's bank
-    if(!isNaN(amount)) {
+    if(!isNaN(amount) && validateUID(UID)) {
         amount = parseInt(amount);
         let remainingBalance = getBankCapacity(UID) - getBankBalance(UID);
         if(remainingBalance == 0) { return -1; }
@@ -231,7 +231,7 @@ function depositBank(UID, amount) { //depoist amount into user's bank
 }
 
 function withdrawBank(UID, amount) { //withdraw amount from user's bank
-    if(!isNaN(amount)) {
+    if(!isNaN(amount) && validateUID(UID)) {
         amount = parseInt(amount)
         balance = userData[UID].bankBalance;
         if(amount > balance) {amount = balance;}
@@ -410,13 +410,6 @@ function getBalances(message, args) { //displays the balance information of a us
     return totalBalance;
 }
 
-/* //TODO: Add getUser functionality with the use of Promises
-function getUser(UID) {
-    let user = bot.users.fetch(UID);
-    user.then(value => { return value });
-}
-*/
-
 function getUsername(UID) { //validates the given UID and returns the username of the specified user
     if(!validateUID(UID)) { console.log("Invalid user specified."); return; }
     return userData[UID].username
@@ -523,13 +516,13 @@ function CLI(message, args) { //main command line interface that parses user dat
             }
             else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
             return;
-        case "share":
+        case "share": //calls share function
             if(args.length > 2) {
                 share(message, args)
             }
             else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
             return;
-        case "givemoney": //calls giveMoney function  //TODO: Permissions
+        case "givemoney": //calls giveMoney function
             if(hasBotAdminPerm(message.author.id)) {
                 if(args.length > 1) {
                     giveMoney(message, args)
@@ -538,7 +531,7 @@ function CLI(message, args) { //main command line interface that parses user dat
             }
             else { message.channel.send(PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
             return;
-        case "takemoney": //calls takeMoney function //TODO: Permissions
+        case "takemoney": //calls takeMoney function
             if(hasBotAdminPerm(message.author.id)) {
                 if(args.length > 1) {
                     takeMoney(message, args)
@@ -547,7 +540,7 @@ function CLI(message, args) { //main command line interface that parses user dat
             }
             else { message.channel.send(PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
             return;
-        case "giveadmin":
+        case "giveadmin": //calls giveAdmin function
             if(hasBotAdminPerm(message.author.id)) {
                 if(args.length > 1) {
                     giveAdmin(message, args)
