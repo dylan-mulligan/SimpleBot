@@ -42,8 +42,8 @@ catch { console.log("Login failed! Exiting..."); return; }
 bot.on('message', message=>{
     if(guild == null) { guild = message.guild; } //sets current server before each message
     guild.roles.fetch().then(async roles => { //creates admin role for the bot if it does not exist
-        if(!roles.cache.find(r => r.name === 'SharkPogBotAdmin')) {
-            await roles.create({data: {name: "SharkPogBotAdmin", color: "RED"}});
+        if(!roles.cache.find(r => r.name === BOT_ADMIN_ROLE_NAME)) {
+            await roles.create({data: {name: BOT_ADMIN_ROLE_NAME, color: "RED"}});
         }
     })
     let UID = message.author.id
