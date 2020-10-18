@@ -6,6 +6,7 @@
 */
 
 //Discord interface setup
+const { exception } = require('console');
 const Discord = require('discord.js');
 const bot = new Discord.Client();
 const fs = require('fs');
@@ -21,9 +22,11 @@ const PREFIX = '=';
 const HELP_MESSAGE = "Invalid Arguments, use -help <command> for help";
 const VERSION = "0.1";
 const BOT_ID = "750833421252689930";
+const BOT_ADMIN_ROLE_NAME = "SharkPogBotAdmin"
 const MIN_AMOUNT = 500;
 const BOT_NAME = "SharkPog Bot";
-let guild = null
+const PERMISSION_DENIED_MESSAGE = "You do not have permission to use this command!";
+let guild = null;
 
 //Bot authentication
 console.log("Bot logging in...");
@@ -52,12 +55,18 @@ bot.on('message', message=>{
         var prefix = message.content.substring(0, PREFIX.length);
         if(prefix.startsWith(PREFIX)) {
             if(message.content !== "") {
-                let args = message.content.substring(PREFIX.length).split(" "); //tokenizes message
+                let args = []
+                message.content.substring(PREFIX.length).split(" ").map(tempArg => {if(tempArg != "") { args.push(tempArg); }}); //tokenizes message
                 if (!userData[UID]) { createUser(UID, message.author.username); } //ensures user exists within data structure to avoid errors
                 CLI(message, args); //main CLI function
             }
         }
-        userData[UID].username = message.author.username //poor implementation of username updating every message //TODO: FIX THIS POOP
+        try{
+            userData[UID].username = message.author.username //poor implementation of username updating every message //TODO: FIX THIS POOP
+        }
+        catch(e) {
+            console.log(e)
+        }
         fs.writeFileSync("./data/user-data.json", JSON.stringify(userData, null, 2), console.error);
         guild = null //resets current server after each message
         //try { data = JSON.parse(fs.readFileSync('data/user-data.json', 'utf8')); } //OUTDATED DATA HANDLING
@@ -113,7 +122,7 @@ function roll(message, args) { //rolls given amount of 6-sided die and displays 
     else { message.channel.send("Please enter a valid number of die (1-20)!"); return; }
 }
 
-function gamble(message, args) { 
+function gamble(message, args) { //TODO: handle tie
     /*rolls 2 die for both the player and the bot, highest score wins
     Winnings are 2 * bet */
     let UID = message.author.id;
@@ -433,11 +442,29 @@ function share(message, args) { //gives a specified amount of coins with a speci
 }
 
 function hasBotAdminPerm(UID) { //checks if given user has bot admin role
-    guild.members.fetch(async member => {
-        if(member.id = UID) {
-            return member.roles.cache.fetch(role => role.name === 'SharkPogBotAdmin')
+    let ret = false
+    guild.members.cache.each(member => {
+        if(member.id === UID) {
+            member.roles.cache.each(r => { 
+                if(r.name === BOT_ADMIN_ROLE_NAME) { ret = true; }
+            });
         }
-    })
+    });
+    return ret;
+}
+
+function giveAdmin(message, args) { //gives a player the bot admin role
+    let UID = getRawUID(args[1])
+    if(!validateUID(UID)) { message.channel.send("Invalid user specified."); return; }
+    let member = message.mentions.members.first();
+    if (!member.roles.cache.some(role => role.name === BOT_ADMIN_ROLE_NAME)) {
+        let role = guild.roles.cache.find(role => role.name === BOT_ADMIN_ROLE_NAME);
+        member.roles.add(role)
+        console.log("User " + UID + " has been assigned the " + BOT_ADMIN_ROLE_NAME + " role!");
+        message.channel.send(getPrintableUserString(UID) + " has been given " + BOT_ADMIN_ROLE_NAME + ".")
+        return;
+    }
+    else {  message.channel.send("User already has this role!"); return; } //if not enough args, print help message
 }
 
 function CLI(message, args) { //main command line interface that parses user data and passes it to relevant functions
@@ -480,19 +507,6 @@ function CLI(message, args) { //main command line interface that parses user dat
             return;
         case "help": //displays command help page
             return;
-        case "givemoney": //calls giveMoney function  //TODO: Permissions
-            hasBotAdminPerm(message.author.id)
-            if(false && args.length > 1) {
-                giveMoney(message, args)
-            }
-            else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
-            return;
-        case "takemoney": //calls takeMoney function //TODO: Permissions
-            if(args.length > 1) {
-                takeMoney(message, args)
-            }
-            else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
-            return;
         case "send": //sends a specified message from the bot
             if(args.length > 1) { message.channel.send(args[1]); }
             else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
@@ -514,6 +528,33 @@ function CLI(message, args) { //main command line interface that parses user dat
                 share(message, args)
             }
             else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+            return;
+        case "givemoney": //calls giveMoney function  //TODO: Permissions
+            if(hasBotAdminPerm(message.author.id)) {
+                if(args.length > 1) {
+                    giveMoney(message, args)
+                }
+                else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+            }
+            else { message.channel.send(PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
+            return;
+        case "takemoney": //calls takeMoney function //TODO: Permissions
+            if(hasBotAdminPerm(message.author.id)) {
+                if(args.length > 1) {
+                    takeMoney(message, args)
+                }
+                else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+            }
+            else { message.channel.send(PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
+            return;
+        case "giveadmin":
+            if(hasBotAdminPerm(message.author.id)) {
+                if(args.length > 1) {
+                    giveAdmin(message, args)
+                }
+                else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+            }
+            else { message.channel.send(PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
             return;
         default:
             return;
