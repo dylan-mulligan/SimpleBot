@@ -1,6 +1,6 @@
 {
   "161637430540238849": {
-    "walletBalance": 32000,
+    "walletBalance": 32038,
     "bankBalance": 20000,
     "bankCapacity": 20000,
     "username": "EDP445",
@@ -14,24 +14,31 @@
     "inventory": {}
   },
   "179417032276705280": {
-    "walletBalance": 3000,
+    "walletBalance": 3001,
     "bankBalance": 3000,
     "bankCapacity": 20000,
     "username": "BitchLasagna",
     "inventory": {}
   },
   "234073309682204692": {
-    "walletBalance": 531000,
-    "bankBalance": 3000,
+    "walletBalance": 100000,
+    "bankBalance": 20000,
     "bankCapacity": 20000,
     "username": "Jack",
     "inventory": {}
   },
   "599018559267667991": {
-    "walletBalance": 5000,
+    "walletBalance": 5001,
     "bankBalance": 1000,
     "bankCapacity": 20000,
     "username": "Mr.E?",
+    "inventory": {}
+  },
+  "754781878321414364": {
+    "walletBalance": 100196000,
+    "bankBalance": 1000,
+    "bankCapacity": 20000,
+    "username": "Madhatter",
     "inventory": {}
   }
 }
