@@ -1,6 +1,6 @@
-module.exports = {
-    run: function blackjack(message, args) {
-        console.log("blackjack placeholder")
-        return
-    }
+function blackjack(message, args) {
+    console.log("blackjack placeholder")
+    return
 }
+
+module.exports = { blackjack }
