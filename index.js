@@ -11,9 +11,11 @@ const bot = new Discord.Client();
 const fs = require('fs');
 const { blackjack } = require("./blackjack")
 const { gamble } = require("./gamble")
-const economy = require("./economy")
 const { getToken, createUser, validateNumericArgument, hasBotAdminPerm, giveAdmin, removeAdmin, validateUID, getRawUID } = require("./utils")
+const { getBalances, deposit, withdraw, share, giveMoney, takeMoney } = require("./economy")
+const { help } = require("./help")
 const games = require("./games")
+const economy = require("./economy")
 
 //Global constants
 const FILEPATH = '../Tokens/SharkPogBot.txt';
@@ -93,7 +95,7 @@ function CLI(message, args) { //main command line interface that parses user dat
             //TODO
             return;
         case "bal": case "balance": //calls getBalances function
-            economy.getBalances(userData, message, args);
+            getBalances(userData, message, args);
             return;
         case "gamble": //calls gamble function
             if(args.length > 1) {
@@ -107,38 +109,40 @@ function CLI(message, args) { //main command line interface that parses user dat
             }
             else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
             return;
-        case "version": //displays bot version
+        case "version": case "ver": //displays bot version
             message.channel.send("The current version is " + BOT_VERSION);
             return;
-        case "help": //displays command help page
-            //TODO
+        case "help": case "commands": //displays command help page
+            help(PREFIX, MIN_BET_AMOUNT, message, args)
             return;
         case "send": //sends a specified message from the bot
-            if(args.length > 1) { message.channel.send(args[1]); }
+            if(args.length > 1 && hasBotAdminPerm(guild, BOT_ADMIN_ROLE_NAME, message.author.id)) { 
+                message.channel.send(args[1]);
+            }
             else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
             return;
         case "dep": case "deposit": //calls deposit function
             if(args.length > 1) { 
-                economy.deposit(userData, message, message.author.id, args[1]);
+                deposit(userData, message, message.author.id, args[1]);
             }
             else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
             return;
         case "with": case "withdraw": //calls withdraw function
             if(args.length > 1) { 
-                economy.withdraw(userData, message, message.author.id, args[1]);
+                withdraw(userData, message, message.author.id, args[1]);
             }
             else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
             return;
         case "share": //calls share function
             if(args.length > 2) {
-                economy.share(userData, message, args);
+                share(userData, message, args);
             }
             else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
             return;
         case "givemoney": //calls giveMoney function
             if(hasBotAdminPerm(guild, BOT_ADMIN_ROLE_NAME, message.author.id)) {
                 if(args.length > 1) {
-                    economy.giveMoney(userData, message, args);
+                    giveMoney(userData, message, args);
                 }
                 else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
             }
@@ -147,7 +151,7 @@ function CLI(message, args) { //main command line interface that parses user dat
         case "takemoney": //calls takeMoney function
             if(hasBotAdminPerm(guild, BOT_ADMIN_ROLE_NAME, message.author.id)) {
                 if(args.length > 1) {
-                    economy.takeMoney(userData, message, args);
+                    takeMoney(userData, message, args);
                 }
                 else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
             }
