@@ -1,6 +1,6 @@
 {
   "161637430540238849": {
-    "walletBalance": 32537,
+    "walletBalance": 42537,
     "bankBalance": 20000,
     "bankCapacity": 20000,
     "username": "EDP445",
@@ -39,6 +39,24 @@
     "bankBalance": 1000,
     "bankCapacity": 20000,
     "username": "Madhatter",
+    "inventory": {}
+  },
+  "280822016721027074": {
+    "walletBalance": 22000,
+    "bankBalance": 1000,
+    "bankCapacity": 20000,
+    "username": "TrickSTah",
+    "level": 0,
+    "xp": 0,
+    "inventory": {}
+  },
+  "292653933602799627": {
+    "walletBalance": 5000,
+    "bankBalance": 1000,
+    "bankCapacity": 20000,
+    "username": "Sianvar",
+    "level": 0,
+    "xp": 0,
     "inventory": {}
   }
 }
