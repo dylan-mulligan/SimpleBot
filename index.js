@@ -26,7 +26,7 @@ const BOT_ID = "750833421252689930";
 const BOT_ADMIN_ROLE_NAME = "SharkPogBotAdmin"
 const MIN_BET_AMOUNT = 500;
 const PERMISSION_DENIED_MESSAGE = "You do not have permission to use this command!";
-const HELP_MESSAGE = "Invalid Arguments, use -help <command> for help";
+const HELP_MESSAGE = "Invalid Arguments, use " + PREFIX +"help <command> for help";
 let guild = null;
 
 //Retrieving bot token (password)
@@ -85,11 +85,14 @@ function CLI(message, args) { //main command line interface that parses user dat
             else {  message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
             return;
         case "clear": //clears args[1] amount of messages (up to 100)
-            if(validateNumericArgument(args, 1) && 100 >= args[1] > 0) {
-                message.channel.bulkDelete(args[1]);
-                message.channel.send("Cleared **" + args[1] + "** messages.");
+            if(hasBotAdminPerm(guild, BOT_ADMIN_ROLE_NAME, message.author.id)) {
+                if(validateNumericArgument(args, 1) && 100 >= args[1] > 0) {
+                    message.channel.bulkDelete(args[1]);
+                    message.channel.send("Cleared **" + args[1] + "** messages.");
+                }
+                else {  message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
             }
-            else {  message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+            else { message.channel.send(PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
             return;
         case "stats": //calls stats function
             //TODO
