@@ -11,6 +11,7 @@
 - Add various ways to gain/gamble money
 - Add exp/level system
 - Add level perks (ex. max bank bal increase)
+- Add invenotry/shop system
 - Add blackjack implimentation
 - Add Secret Hitler implimentation
 - Improve modular framework to streamline adding modules
