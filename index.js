@@ -11,26 +11,18 @@ const bot = new Discord.Client();
 const fs = require('fs');
 const { blackjack } = require("./blackjack")
 const { gamble } = require("./gamble")
-const { getToken, createUser, validateNumericArgument, hasBotAdminPerm, giveAdmin, removeAdmin, validateUID, getRawUID } = require("./utils")
-const { getBalances, deposit, withdraw, share, giveMoney, takeMoney } = require("./economy")
+const { getToken, createUser, validateNumericArgument, hasBotAdminPerm, 
+    giveAdmin, removeAdmin, validateUID, getRawUID, validateMemory, 
+    offCooldown, onCooldown } = require("./utils")
+const { getBalances, deposit, withdraw, share, giveMoney, takeMoney, rob } = require("./economy")
 const { help } = require("./help")
 const games = require("./games")
-const economy = require("./economy")
+const gc = require("./global_constants")
 
-//Global constants
-const FILEPATH = '../Tokens/SharkPogBot.txt';
-const PREFIX = '=';
-const BOT_VERSION = "0.1";
-const BOT_NAME = "SharkPogBot";
-const BOT_ID = "750833421252689930";
-const BOT_ADMIN_ROLE_NAME = "SharkPogBotAdmin"
-const MIN_BET_AMOUNT = 500;
-const PERMISSION_DENIED_MESSAGE = "You do not have permission to use this command!";
-const HELP_MESSAGE = "Invalid Arguments, use " + PREFIX +"help <command> for help";
 let guild = null;
 
 //Retrieving bot token (password)
-let token = getToken(FILEPATH);
+let token = getToken(gc.FILEPATH);
 var userData = require('./data/user-data.json');
 
 //Bot authentication
@@ -47,27 +39,28 @@ catch { console.log("Login failed! Exiting..."); return; }
 bot.on('message', message=>{
     if(guild == null) { guild = message.guild; } //sets current server before each message
     guild.roles.fetch().then(async roles => { //creates admin role for the bot if it does not exist
-        if(!roles.cache.find(r => r.name === BOT_ADMIN_ROLE_NAME)) {
-            await roles.create({data: {name: BOT_ADMIN_ROLE_NAME, color: "RED"}});
+        if(!roles.cache.find(r => r.name === gc.BOT_ADMIN_ROLE_NAME)) {
+            await roles.create({data: {name: gc.BOT_ADMIN_ROLE_NAME, color: "RED"}});
         }
     })
     let UID = message.author.id
     if(!message.author.bot) {
         //if message has correct prefix, run CLI
-        var prefix = message.content.substring(0, PREFIX.length);
-        if(prefix.startsWith(PREFIX)) {
+        if(message.content.startsWith(gc.PREFIX)) {
             if(message.content !== "") {
+                createUser(userData, "0000", "EXAMPLE");
                 let args = []
-                message.content.substring(PREFIX.length).split(" ").map(tempArg => {if(tempArg != "") { args.push(tempArg); }}); //tokenizes message
+                message.content.substring(gc.PREFIX.length).split(" ").map(tempArg => {if(tempArg != "") { args.push(tempArg); }}); //tokenizes message
                 if (!userData[UID]) { createUser(userData, UID, message.author.username); } //ensures user exists within data structure to avoid errors
+                validateMemory(userData, UID);
                 CLI(message, args); //main CLI function
             }
-        }
-        try{
-            userData[UID].username = message.author.username //poor implementation of username updating every message //TODO: FIX THIS POOP
-        }
-        catch(e) {
-            console.log(e)
+            try{
+                userData[UID].username = message.author.username; //poor implementation of username updating every message //TODO: FIX THIS POOP
+            }
+            catch(e) {
+                console.log(e + message.author.username);
+            }
         }
         fs.writeFileSync("./data/user-data.json", JSON.stringify(userData, null, 2), console.error);
         guild = null //resets current server after each message
@@ -82,17 +75,17 @@ function CLI(message, args) { //main command line interface that parses user dat
             return;
         case "roll": //calls roll function
             if(validateNumericArgument(args, 1)) { games.roll(message, args); }
-            else {  message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+            else {  message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
             return;
         case "clear": //clears args[1] amount of messages (up to 100)
-            if(hasBotAdminPerm(guild, BOT_ADMIN_ROLE_NAME, message.author.id)) {
+            if(hasBotAdminPerm(guild, gc.BOT_ADMIN_ROLE_NAME, message.author.id)) {
                 if(validateNumericArgument(args, 1) && 100 >= args[1] > 0) {
                     message.channel.bulkDelete(args[1]);
-                    message.channel.send("Cleared **" + args[1] + "** messages.");
+                    message.channel.send("Cleared **" + args[1] + "** messages.").then(msg => msg.delete({"timeout": 5000}));
                 }
-                else {  message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+                else {  message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
             }
-            else { message.channel.send(PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
+            else { message.channel.send(gc.PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
             return;
         case "stats": //calls stats function
             //TODO
@@ -102,90 +95,104 @@ function CLI(message, args) { //main command line interface that parses user dat
             return;
         case "gamble": //calls gamble function
             if(args.length > 1) {
-                gamble(userData, BOT_NAME, MIN_BET_AMOUNT, message, args);
+                gamble(userData, gc.BOT_NAME, gc.MIN_BET_AMOUNT, message, args);
             }
-            else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+            else { message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
             return;
         case "blackjack": //calls blackjack function
             if(args.length > 1) {
                 blackjack(message, args);
             }
-            else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+            else { message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
             return;
         case "version": case "ver": //displays bot version
-            message.channel.send("The current version is " + BOT_VERSION);
+            message.channel.send("The current version is " + gc.BOT_VERSION);
             return;
         case "help": case "commands": //displays command help page
-            help(PREFIX, MIN_BET_AMOUNT, message, args)
-            return;
-        case "send": //sends a specified message from the bot
-            if(args.length > 1 && hasBotAdminPerm(guild, BOT_ADMIN_ROLE_NAME, message.author.id)) { 
-                message.channel.send(args[1]);
-            }
-            else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+            help(gc.PREFIX, gc.MIN_BET_AMOUNT, message, args)
             return;
         case "dep": case "deposit": //calls deposit function
             if(args.length > 1) { 
                 deposit(userData, message, message.author.id, args[1]);
             }
-            else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+            else { message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
             return;
         case "with": case "withdraw": //calls withdraw function
             if(args.length > 1) { 
                 withdraw(userData, message, message.author.id, args[1]);
             }
-            else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+            else { message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
             return;
         case "share": //calls share function
             if(args.length > 2) {
                 share(userData, message, args);
             }
-            else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+            else { message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
+            return;
+        case "search": //TODO
+            return;
+        case "rob": case "steal": //TODO
+            if(args.length > 1) {
+                if(offCooldown(userData, message.author.id, "rob")) {
+                    rob(userData, message, args, gc.MIN_BET_AMOUNT);
+                }
+                else { onCooldown(userData, message, message.author.id, "rob", gc.COOLDOWNS); } //if not off cooldown, call onCooldown
+            }
+            else { message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
+            return;
+        case "bankrob": //TODO
+            return;
+        //ADMIN COMMANDS
+        case "send": //sends a specified message from the bot
+            if(args.length > 1 && hasBotAdminPerm(guild, gc.BOT_ADMIN_ROLE_NAME, message.author.id)) { 
+                message.channel.send(message.content.substring(gc.PREFIX.length+4).trim());
+            }
+            else { message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
             return;
         case "givemoney": //calls giveMoney function
-            if(hasBotAdminPerm(guild, BOT_ADMIN_ROLE_NAME, message.author.id)) {
+            if(hasBotAdminPerm(guild, gc.BOT_ADMIN_ROLE_NAME, message.author.id)) {
                 if(args.length > 1) {
                     giveMoney(userData, message, args);
                 }
-                else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+                else { message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
             }
-            else { message.channel.send(PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
+            else { message.channel.send(gc.PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
             return;
         case "takemoney": //calls takeMoney function
-            if(hasBotAdminPerm(guild, BOT_ADMIN_ROLE_NAME, message.author.id)) {
+            if(hasBotAdminPerm(guild, gc.BOT_ADMIN_ROLE_NAME, message.author.id)) {
                 if(args.length > 1) {
                     takeMoney(userData, message, args);
                 }
-                else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+                else { message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
             }
-            else { message.channel.send(PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
+            else { message.channel.send(gc.PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
             return;
         case "giveadmin": //calls giveAdmin function
-            if(hasBotAdminPerm(guild, BOT_ADMIN_ROLE_NAME, message.author.id)) {
+            if(hasBotAdminPerm(guild, gc.BOT_ADMIN_ROLE_NAME, message.author.id)) {
                 if(args.length > 1) {
-                    giveAdmin(userData, guild, BOT_ADMIN_ROLE_NAME, message, args);
+                    giveAdmin(userData, guild, gc.BOT_ADMIN_ROLE_NAME, message, args);
                 }
-                else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+                else { message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
             }
-            else { message.channel.send(PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
+            else { message.channel.send(gc.PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
             return;
         case "removeadmin": //calls removeAdmin function
-            if(hasBotAdminPerm(guild, BOT_ADMIN_ROLE_NAME, message.author.id)) {
+            if(hasBotAdminPerm(guild, gc.BOT_ADMIN_ROLE_NAME, message.author.id)) {
                 if(args.length > 1) {
-                    removeAdmin(userData, guild, BOT_ADMIN_ROLE_NAME, message, args);
+                    removeAdmin(userData, guild, gc.BOT_ADMIN_ROLE_NAME, message, args);
                 }
-                else { message.channel.send(HELP_MESSAGE); } //if not enough args, print help message
+                else { message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
             }
-            else { message.channel.send(PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
+            else { message.channel.send(gc.PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
             return;
         case "hasadmin":
             let UID = getRawUID(args[1]);
             if(args.length > 1 && validateUID(userData, UID)) {
                 
-                if(hasBotAdminPerm(guild, BOT_ADMIN_ROLE_NAME, UID)) { 
-                    message.channel.send("User has " + BOT_ADMIN_ROLE_NAME + " role.");
+                if(hasBotAdminPerm(guild, gc.BOT_ADMIN_ROLE_NAME, UID)) { 
+                    message.channel.send("User has " + gc.BOT_ADMIN_ROLE_NAME + " role.");
                 }
-                else { message.channel.send("User does not have " + BOT_ADMIN_ROLE_NAME + " role."); }
+                else { message.channel.send("User does not have " + gc.BOT_ADMIN_ROLE_NAME + " role."); }
             }
             else { message.channel.send("Invalid user specified."); }
             return;
@@ -194,4 +201,4 @@ function CLI(message, args) { //main command line interface that parses user dat
     }
 }
 
-module.exports = { BOT_NAME, MIN_BET_AMOUNT, userData }
+module.exports = { userData }
