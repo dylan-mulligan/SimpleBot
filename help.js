@@ -1,4 +1,3 @@
-const { MIN_BET_AMOUNT } = require(".");
 const { createEmbed } = require("./utils")
 function help(PREFIX, MIN_BET_AMOUNT, message, args) {
     if(args.length > 1) {

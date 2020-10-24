@@ -1,4 +1,5 @@
 const utils = require("./utils")
+const gc = require("./global_constants")
 
 function checkBalance(userData, minBetAmount, UID, amount, message) { //checks if the user has the specified amount in their wallet
     if(utils.validateUID(userData, UID)) {
@@ -240,7 +241,7 @@ function getBankCapacity(userData, UID) { //returns the capacity of a user's ban
 function getBalances(userData, message, args) { //displays the balance information of a user
     let UID = message.author.id;
     if(args.length > 1) {
-        args[1] = utils.getRawUID(userData, args[1])
+        args[1] = utils.getRawUID(args[1])
         if(utils.validateUID(userData, args[1])) { UID = args[1]; }
     }
     
@@ -252,13 +253,43 @@ function getBalances(userData, message, args) { //displays the balance informati
     let description = "**Wallet**: " + walletBalance +
     "\n**Bank**: " + bankBalance + "/" + getBankCapacity(userData, UID) +
     "\n**Total**: " + totalBalance;
-
     message.channel.send(utils.createEmbed(title, description));
     return totalBalance;
+}
+
+function rob(userData, message, args, MIN_BET_AMOUNT) {
+    UID = utils.getRawUID(args[1])
+    bal = getWalletBalance(userData, message.author.id)
+    targetBal = getWalletBalance(userData, UID)
+    if(!utils.validateUID(userData, UID)) { message.channel.send("Invalid user specified."); return; }
+    if(bal < MIN_BET_AMOUNT) { message.channel.send("You need at least " + MIN_BET_AMOUNT + " coins to rob someone."); return; }
+    if(targetBal < MIN_BET_AMOUNT) { message.channel.send("User doesn't have at least " + MIN_BET_AMOUNT + " coins."); return; }
+
+    if(utils.randomChance(0.5)) {
+        robAmount = utils.randomInt(1, targetBal)
+        size = parseFloat((robAmount / targetBal).toFixed(2))
+        sizeString = ""
+        if(size <= 0.33) { sizeString = "a small amount." }
+        else if(size <= 0.5) { sizeString = "an okay amount." }
+        else if(size <= 0.66) { sizeString = "a good amount." }
+        else if(size < 1) { sizeString = "a large amount!" }
+        else if(size == 1) { sizeString = "all of it!" }
+        message.channel.send("You took " + sizeString)
+        message.channel.send("You got " + robAmount + " coins.")
+        withdrawWallet(userData, UID, robAmount)
+        depositWallet(userData, message.author.id, robAmount)
+    }
+    else {
+        lossAmount = utils.randomInt(MIN_BET_AMOUNT, bal)
+        message.channel.send("You failed and lost " + lossAmount)
+        withdrawWallet(userData, message.author.id, lossAmount)
+    }
+    userData[message.author.id].cooldowns.rob = Date.now()
 }
 
 module.exports = { 
     checkBalance, getAmount, depositWallet, withdrawWallet, depositBank, 
     withdrawBank, deposit, withdraw, share, calculateWinnings, giveMoney, 
-    takeMoney, getWalletBalance, getBankBalance, getBankCapacity, getBalances
+    takeMoney, getWalletBalance, getBankBalance, getBankCapacity, getBalances,
+    rob
 }

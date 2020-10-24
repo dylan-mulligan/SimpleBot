@@ -1,5 +1,6 @@
 const fs = require('fs');
 const Discord = require('discord.js');
+const { COOLDOWNS } = require("./global_constants");
 
 function validateNumericArgument(args, index) { //validates a value args[index] exists and is numeric
     return (args[index] && !isNaN(args[index]));
@@ -14,7 +15,10 @@ function getPrintableRoleString(UID) { //convert's UID into discord recognizable
 }
 
 function getRawUID(UID) { //converts a mention (discord recognizable format) to raw UID
-    return UID.substring(3, UID.length-1);
+    if(UID.length > 5){
+        return UID.substring(3, UID.length-1);
+    }
+    else { return null; }
 }
 
 function validateUID(userData, UID) { //validates if user has a valid data entry in user-data.json
@@ -29,6 +33,13 @@ function createUser(userData, UID, userName) { //creates new user in user-data.j
         username: userName,
         level: 0,
         xp: 0,
+        cooldowns: {
+            search: 0,
+            hunt: 0,
+            fish: 0,
+            rob: 0,
+            bankrob: 0
+        },
         inventory: {}
     }
 }
@@ -101,8 +112,43 @@ function rollDie(sides) { //"rolls a die" with given sides and returns the resul
     return Math.round(Math.random() * sides);
 }
 
+function validateMemory(userData, UID) {
+    for (const key in userData["0000"]) {
+        if (!userData[UID].hasOwnProperty(key)) {
+            console.log("User " + UID + " missing " + key)
+            console.log("Adding " + key + " to user " + UID)
+            userData[UID][key] = userData["0000"][key]
+        }
+    }
+}
+
+function offCooldown(userData, UID, key) { //TODO
+    if(!validateUID(userData, UID)) { console.log("Invalid user specified: " + UID); return false; }
+    if(!userData[UID].cooldowns.hasOwnProperty(key)) { console.log("User " + UID + " does not have property: " + key); return false; }
+    if(!COOLDOWNS.hasOwnProperty(key)) { console.log("Invalid property specified: " + key); return false; }
+    return Date.now() - userData[UID].cooldowns[key] >= COOLDOWNS[key] * 1000
+}
+
+function onCooldown(userData, message, UID, key, COOLDOWNS) {
+    if(!validateUID(userData, UID)) { return; }
+    if(!userData[UID].cooldowns.hasOwnProperty(key)) { console.log("User " + UID + " does not have property: " + key); return false; }
+    remainingCooldown = COOLDOWNS[key] - (Date.now() - userData[UID].cooldowns[key]) / 1000
+    totalCooldown = COOLDOWNS[key]
+    message.channel.send("You must wait " + remainingCooldown + " seconds to " + key + ". (Total cooldown: " + totalCooldown + " seconds)")
+}
+
+function randomInt(min, max) {
+    if(!Number.isInteger(min) || !Number.isInteger(max)) { return; }
+    return Math.floor(min + Math.random() * (max - min));
+}
+
+function randomChance(chance) {
+    return Math.random() <= chance
+}
+
 module.exports = { 
     validateNumericArgument, getPrintableUserString, getRawUID, validateUID, 
     createUser, createEmbed, getToken, getUsername, hasBotAdminPerm, giveAdmin, 
-    rollDie, removeAdmin, getPrintableRoleString
+    rollDie, removeAdmin, getPrintableRoleString, validateMemory, offCooldown,
+    randomInt, randomChance, onCooldown
 }
