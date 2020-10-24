@@ -1,10 +1,19 @@
 {
   "161637430540238849": {
-    "walletBalance": 42537,
+    "walletBalance": 16766,
     "bankBalance": 20000,
     "bankCapacity": 20000,
     "username": "EDP445",
-    "inventory": {}
+    "inventory": {},
+    "level": 0,
+    "xp": 0,
+    "cooldowns": {
+      "search": 0,
+      "hunt": 0,
+      "fish": 0,
+      "rob": 1603503409329,
+      "bankrob": 0
+    }
   },
   "750833421252689930": {
     "walletBalance": 6000,
@@ -21,11 +30,20 @@
     "inventory": {}
   },
   "234073309682204692": {
-    "walletBalance": 100001,
-    "bankBalance": 20000,
+    "walletBalance": 7549,
     "bankCapacity": 20000,
     "username": "Jack",
-    "inventory": {}
+    "inventory": {},
+    "bankBalance": 1000,
+    "level": 0,
+    "xp": 0,
+    "cooldowns": {
+      "search": 0,
+      "hunt": 0,
+      "fish": 0,
+      "rob": 0,
+      "bankrob": 0
+    }
   },
   "599018559267667991": {
     "walletBalance": 5001,
@@ -51,12 +69,51 @@
     "inventory": {}
   },
   "292653933602799627": {
-    "walletBalance": 5000,
+    "walletBalance": 0,
     "bankBalance": 1000,
     "bankCapacity": 20000,
     "username": "Sianvar",
     "level": 0,
     "xp": 0,
+    "inventory": {},
+    "cooldowns": {
+      "search": 0,
+      "hunt": 0,
+      "fish": 0,
+      "rob": 0,
+      "bankrob": 0
+    }
+  },
+  "208630160511991808": {
+    "walletBalance": 138840,
+    "bankCapacity": 20000,
+    "username": "Broby Boober",
+    "level": 0,
+    "xp": 0,
+    "cooldowns": {
+      "search": 0,
+      "hunt": 0,
+      "fish": 0,
+      "rob": 0,
+      "bankrob": 0
+    },
+    "inventory": {},
+    "bankBalance": 0
+  },
+  "0000": {
+    "walletBalance": 5000,
+    "bankBalance": 1000,
+    "bankCapacity": 20000,
+    "username": "EXAMPLE",
+    "level": 0,
+    "xp": 0,
+    "cooldowns": {
+      "search": 0,
+      "hunt": 0,
+      "fish": 0,
+      "rob": 0,
+      "bankrob": 0
+    },
     "inventory": {}
   }
 }
