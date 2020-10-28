@@ -1,6 +1,7 @@
 const fs = require('fs');
 const Discord = require('discord.js');
 const { COOLDOWNS } = require("./global_constants");
+const { Player } = require("./objects/Player")
 
 function validateNumericArgument(args, index) { //validates a value args[index] exists and is numeric
     return (args[index] && !isNaN(args[index]));
@@ -15,7 +16,7 @@ function getPrintableRoleString(role) { //convert's role into discord recognizab
 }
 
 function getRawUID(UID) { //converts a mention (discord recognizable format) to raw UID
-    if(UID.length > 5){
+    if(UID !== null && UID !== undefined && UID.length > 5){
         return UID.substring(3, UID.length-1);
     }
     else { return null; }
@@ -171,9 +172,14 @@ function createArray(size, value) {
     return deck;
 }
 
+function createPlayerObject(user) {
+    return new Player(user)
+}
+
 module.exports = { 
     validateNumericArgument, getPrintableUserString, getRawUID, validateUID, 
     createUser, createEmbed, getToken, getUsername, hasBotAdminPerm, giveAdmin, 
     rollDie, removeAdmin, getPrintableRoleString, validateMemory, offCooldown,
-    randomInt, randomChance, onCooldown, shuffle, createArray
+    randomInt, randomChance, onCooldown, shuffle, createArray, createPlayerObject,
+    swap
 }
