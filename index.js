@@ -16,7 +16,7 @@ const { getToken, createUser, validateNumericArgument, hasBotAdminPerm,
     offCooldown, onCooldown } = require("./utils")
 const { getBalances, deposit, withdraw, share, giveMoney, takeMoney, 
     rob } = require("./economy")
-const { secretHilter } = require("./secrethitler")
+const { SecretHitler } = require("./secrethitler")
 const { help } = require("./help")
 const games = require("./games")
 const gc = require("./global_constants")
@@ -40,36 +40,38 @@ catch { console.log("Login failed! Exiting..."); return; }
 //Event handler for all messages across all channels
 bot.on('message', message=>{
     if(guild == null) { guild = message.guild; } //sets current server before each message
-    guild.roles.fetch().then(async roles => { //creates admin role for the bot if it does not exist
-        if(!roles.cache.find(r => r.name === gc.BOT_ADMIN_ROLE_NAME)) {
-            await roles.create({data: {name: gc.BOT_ADMIN_ROLE_NAME, color: "RED"}});
+    if(guild !== null && guild !== undefined) {
+        guild.roles.fetch().then(async roles => { //creates admin role for the bot if it does not exist
+            if(!roles.cache.find(r => r.name === gc.BOT_ADMIN_ROLE_NAME)) {
+                await roles.create({data: {name: gc.BOT_ADMIN_ROLE_NAME, color: "RED"}});
+            }
+        })
+        let UID = message.author.id
+        if(!message.author.bot) {
+            //if message has correct prefix, run CLI
+            if(message.content.startsWith(gc.PREFIX)) {
+                if(message.content !== "") {
+                    createUser(userData, "0000", "EXAMPLE");
+                    let args = []
+                    message.content.substring(gc.PREFIX.length).split(" ").map(tempArg => {if(tempArg != "") { args.push(tempArg); }}); //tokenizes message
+                    if (!userData[UID]) { createUser(userData, UID, message.author.username); } //ensures user exists within data structure to avoid errors
+                    validateMemory(userData, UID);
+                    CLI(message, args); //main CLI function
+                }
+                try{
+                    userData[UID].username = message.author.username; //poor implementation of username updating every message //TODO: FIX THIS POOP
+                }
+                catch(e) {
+                    console.log(e + message.author.username);
+                }
+            }
+            fs.writeFileSync("./data/user-data.json", JSON.stringify(userData, null, 2), console.error);
+            guild = null //resets current server after each message
         }
-    })
-    let UID = message.author.id
-    if(!message.author.bot) {
-        //if message has correct prefix, run CLI
-        if(message.content.startsWith(gc.PREFIX)) {
-            if(message.content !== "") {
-                createUser(userData, "0000", "EXAMPLE");
-                let args = []
-                message.content.substring(gc.PREFIX.length).split(" ").map(tempArg => {if(tempArg != "") { args.push(tempArg); }}); //tokenizes message
-                if (!userData[UID]) { createUser(userData, UID, message.author.username); } //ensures user exists within data structure to avoid errors
-                validateMemory(userData, UID);
-                CLI(message, args); //main CLI function
-            }
-            try{
-                userData[UID].username = message.author.username; //poor implementation of username updating every message //TODO: FIX THIS POOP
-            }
-            catch(e) {
-                console.log(e + message.author.username);
-            }
-        }
-        fs.writeFileSync("./data/user-data.json", JSON.stringify(userData, null, 2), console.error);
-        guild = null //resets current server after each message
-    }
+    } 
 })
 
-function CLI(message, args) { //main command line interface that parses user data and passes it to relevant functions
+async function CLI(message, args) { //main command line interface that parses user data and passes it to relevant functions
     //switch handles user entered command
     switch (args[0]) {
         case "ping": //pong
@@ -78,16 +80,6 @@ function CLI(message, args) { //main command line interface that parses user dat
         case "roll": //calls roll function
             if(validateNumericArgument(args, 1)) { games.roll(message, args); }
             else {  message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
-            return;
-        case "clear": //clears args[1] amount of messages (up to 100)
-            if(hasBotAdminPerm(guild, gc.BOT_ADMIN_ROLE_NAME, message.author.id)) {
-                if(validateNumericArgument(args, 1) && 100 >= args[1] > 0) {
-                    message.channel.bulkDelete(args[1]);
-                    message.channel.send("Cleared **" + args[1] + "** messages.").then(msg => msg.delete({"timeout": 5000}));
-                }
-                else {  message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
-            }
-            else { message.channel.send(gc.PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
             return;
         case "stats": //calls stats function
             //TODO
@@ -145,9 +137,19 @@ function CLI(message, args) { //main command line interface that parses user dat
         case "bankrob": //TODO
             return;
         case "secrethitler":
-            secretHilter(message.channel)
+            new SecretHitler(message.channel);
             return;
         //ADMIN COMMANDS
+        case "clear": //clears args[1] amount of messages (up to 100)
+            if(hasBotAdminPerm(guild, gc.BOT_ADMIN_ROLE_NAME, message.author.id)) {
+                if(validateNumericArgument(args, 1) && 100 >= args[1] > 0 && message.channel.type !== "dm") {
+                    await message.channel.bulkDelete(args[1]).catch(e => console.log(e)); //TODO CATCH THIS PROPERLY
+                    await message.channel.send("Cleared **" + args[1] + "** messages.").then(msg => msg.delete({"timeout": 5000}));
+                }
+                else {  message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
+            }
+            else { message.channel.send(gc.PERMISSION_DENIED_MESSAGE); } //if no permissions, print no permissions message
+            return;
         case "send": //sends a specified message from the bot
             if(args.length > 1 && hasBotAdminPerm(guild, gc.BOT_ADMIN_ROLE_NAME, message.author.id)) { 
                 message.channel.send(message.content.substring(gc.PREFIX.length+4).trim());
