@@ -257,7 +257,7 @@ function getBalances(userData, message, args) { //displays the balance informati
     return totalBalance;
 }
 
-function rob(userData, message, args, MIN_BET_AMOUNT) {
+function rob(userData, message, args, MIN_BET_AMOUNT) { //TODO: Move setup code to separate function (will be repeated in bankrob)
     UID = utils.getRawUID(args[1])
     bal = getWalletBalance(userData, message.author.id)
     targetBal = getWalletBalance(userData, UID)

@@ -7,11 +7,11 @@ function validateNumericArgument(args, index) { //validates a value args[index] 
 }
 
 function getPrintableUserString(UID) { //convert's UID into discord recognizable format (for mentions)
-    return "<@!" + UID +">";
+    return "<@!" + UID + ">";
 }
 
-function getPrintableRoleString(UID) { //convert's UID into discord recognizable format (for mentions)
-    return "<@&" + UID +">";
+function getPrintableRoleString(role) { //convert's role into discord recognizable format (for role mentions)
+    return "<@&" + role + ">";
 }
 
 function getRawUID(UID) { //converts a mention (discord recognizable format) to raw UID
@@ -21,11 +21,11 @@ function getRawUID(UID) { //converts a mention (discord recognizable format) to 
     else { return null; }
 }
 
-function validateUID(userData, UID) { //validates if user has a valid data entry in user-data.json
+function validateUID(userData, UID) { //validates if a user with given UID has a valid data entry in given userData
     return (userData[UID] !== null && userData[UID] !== undefined);
 }
 
-function createUser(userData, UID, userName) { //creates new user in user-data.json with a given UID
+function createUser(userData, UID, userName) { //creates new user in given userData with a given UID and userName
     userData[UID] = {
         walletBalance: 5000,
         bankBalance: 1000,
@@ -134,7 +134,7 @@ function onCooldown(userData, message, UID, key, COOLDOWNS) {
     if(!userData[UID].cooldowns.hasOwnProperty(key)) { console.log("User " + UID + " does not have property: " + key); return false; }
     remainingCooldown = COOLDOWNS[key] - (Date.now() - userData[UID].cooldowns[key]) / 1000
     totalCooldown = COOLDOWNS[key]
-    message.channel.send("You must wait " + remainingCooldown + " seconds to " + key + ". (Total cooldown: " + totalCooldown + " seconds)")
+    message.channel.send("You must wait " + remainingCooldown.toFixed(1) + " seconds to " + key + ". (Total cooldown: " + totalCooldown + " seconds)")
 }
 
 function randomInt(min, max) {
@@ -146,9 +146,34 @@ function randomChance(chance) {
     return Math.random() <= chance
 }
 
+function shuffle(deck) {
+    const length = deck.length;
+    for (let i = 0; i < length; i++) {
+        let j = randomInt(0, length);
+        swap(deck, i, j);
+    }
+}
+
+function swap(array, i, j) {
+    const length = array.length;
+    if(i < length && j < length) {
+        temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+}
+
+function createArray(size, value) {
+    let deck = Array(size)
+    for (let i = 0; i < deck.length; i++) {
+        deck[i] = value
+    }
+    return deck;
+}
+
 module.exports = { 
     validateNumericArgument, getPrintableUserString, getRawUID, validateUID, 
     createUser, createEmbed, getToken, getUsername, hasBotAdminPerm, giveAdmin, 
     rollDie, removeAdmin, getPrintableRoleString, validateMemory, offCooldown,
-    randomInt, randomChance, onCooldown
+    randomInt, randomChance, onCooldown, shuffle, createArray
 }
