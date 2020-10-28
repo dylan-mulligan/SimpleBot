@@ -1,9 +1,11 @@
 class Placard {
     #title;
     #PID;
-    constructor(title=null, PID=null) {
+    #index
+    constructor(title=null, PID=null, index=0) {
         this.#title = title;
         this.#PID = PID;
+        this.#index = index;
     }
 
     //getters
@@ -13,6 +15,9 @@ class Placard {
     get PID() {
         return this.#PID;
     }
+    get index() {
+        return this.#index;
+    }
 
     //setters
     set title(val) {
@@ -20,6 +25,9 @@ class Placard {
     }
     set PID(val) {
         this.#PID = val;
+    }
+    set index(val) {
+        this.#index = val;
     }
 
     //methods
@@ -29,6 +37,22 @@ class Placard {
 
     remove() {
         this.#PID = null;
+    }
+
+    moveNext(players) {
+        this.increment(players.length);
+        const prevPID = this.#PID;
+        this.#PID = players[this.#index].user.id;
+        return [prevPID, this.#PID];
+    }
+
+    increment(maxValue) {
+        if(this.#index < maxValue - 1) {
+            this.#index += 1;
+        }
+        else {
+            this.#index = 0;
+        }
     }
 }
 

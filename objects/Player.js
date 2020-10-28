@@ -1,25 +1,25 @@
 class Player {
-    #username;
-    #id;
+    #user;
     #role;
     #party;
     #hand;
     #alive;
-    constructor(username="", id="", role="", party="", hand=[], alive=true) {
-        this.#username = username;
-        this.#id = id;
-        this.#role = role;
-        this.#party = party;
-        this.#hand = hand;
-        this.#alive = alive;
+    #roll;
+    #placard;
+
+    constructor(user=null) {
+        this.#user = user;
+        this.#role = "";
+        this.#party = "";
+        this.#hand = [];
+        this.#alive = true;
+        this.#roll = 0;
+        this.#placard = null;
     }
 
     //getters
-    get username() {
-        return this.#username;
-    }
-    get id() {
-        return this.#id;
+    get user() {
+        return this.#user;
     }
     get role() {
         return this.#role;
@@ -33,13 +33,16 @@ class Player {
     get alive() {
         return this.#alive;
     }
+    get roll() {
+        return this.#roll;
+    }
+    get placard() {
+        return this.#placard;
+    }
 
     //setters
-    set username(val) {
-        this.#username = val;
-    }
-    set id(val) {
-        this.#id = val;
+    set user(val) {
+        this.#user = val;
     }
     set role(val) {
         this.#role = val;
@@ -53,6 +56,12 @@ class Player {
     set alive(val) {
         this.#alive = val;
     }
+    set roll(val) {
+        this.#roll = val;
+    }
+    set placard(val) {
+        this.#placard = val;
+    }
 
     //methods
     kill() {
@@ -61,6 +70,16 @@ class Player {
 
     deal(card) {
         this.#hand.push(card);
+    }
+
+    assignRole(role) {
+        this.#role = role;
+        if(role == "liberal") { this.#party = "liberal"; }
+        else { this.#party = "fascist"; }
+    }
+
+    givePlacard(placard) {
+        this.#placard = placard;
     }
 }
 
