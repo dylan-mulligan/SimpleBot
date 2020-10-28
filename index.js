@@ -14,7 +14,9 @@ const { gamble } = require("./gamble")
 const { getToken, createUser, validateNumericArgument, hasBotAdminPerm, 
     giveAdmin, removeAdmin, validateUID, getRawUID, validateMemory, 
     offCooldown, onCooldown } = require("./utils")
-const { getBalances, deposit, withdraw, share, giveMoney, takeMoney, rob } = require("./economy")
+const { getBalances, deposit, withdraw, share, giveMoney, takeMoney, 
+    rob } = require("./economy")
+const { secretHilter } = require("./secrethitler")
 const { help } = require("./help")
 const games = require("./games")
 const gc = require("./global_constants")
@@ -141,6 +143,9 @@ function CLI(message, args) { //main command line interface that parses user dat
             else { message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
             return;
         case "bankrob": //TODO
+            return;
+        case "secrethitler":
+            secretHilter(message.channel)
             return;
         //ADMIN COMMANDS
         case "send": //sends a specified message from the bot
