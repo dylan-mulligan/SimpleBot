@@ -28,13 +28,14 @@ class SecretHitler {
     }
 
     async secretHitler(channel) {
-        await this.startGame(channel)
-        await this.setup()
-        const that = this;
-        //give fascists time to look at other fascists and hitler
-        setTimeout(function() {
-            that.turn(channel);
-        }, 5000); //REPLACE 5000 with 10000 or 15000
+        if(await this.startGame(channel)) {
+            await this.setup()
+            const that = this;
+            //give fascists time to look at other fascists and hitler
+            setTimeout(function() {
+                that.turn(channel);
+            }, 5000); //REPLACE 5000 with 10000 or 15000
+        }
         /*
         while(!this.#gameOver) {
             await this.turn(channel)
@@ -49,12 +50,14 @@ class SecretHitler {
         await message.react('👍');
         const collected = 
         await message.awaitReactions(reaction => reaction.emoji.name == '👍', { max: 10, time: 5000 }) //REPLACE 5000 WITH 30000
-        await collected.array()[0].users.cache.array().forEach(user => {
-            if(!user.bot && this.#players.length < 10) {
-                this.#players.push(createPlayerObject(user));
-            }
-        });
-        if(this.#players.length >= 1) {
+        if(collected.size > 0) {
+            await collected.array()[0].users.cache.array().forEach(user => {
+                if(!user.bot && this.#players.length < 10) {
+                    this.#players.push(createPlayerObject(user));
+                }
+            });
+        }
+        if(this.#players.length >= 1) { //REPLACE 1 with 5
             let playerNames = ""
             this.#players.forEach(player => {
                 playerNames += getPrintableUserString(player.user.id) + " "
@@ -63,8 +66,10 @@ class SecretHitler {
         }
         else {
             message.edit('Not enough players. Game aborted!').then(msg => msg.delete({"timeout": 15000}));
+            return false;
         }
         await message.reactions.removeAll().catch(error => console.error('Failed to remove reactions: ', error));
+        return true;
     }
 
     static createRoleCardDeck(liberalCount, fascistCount, hitlerCount, roleCards) {
@@ -234,23 +239,59 @@ class SecretHitler {
             //gives first player president placard
             newPres.givePlacard(this.#presidentPlacard);
         }
+        const predidentMention = getPrintableUserString(this.#president.user.id);
+        channel.send("The current presidential candidate is " + predidentMention);
 
         //president chooces chancellor candidtate (cannot be previous pres or chancellor)
-        const message = await channel.send("Please mention your choice for the next candidate chancellor in the next 30 seconds");
-        const collected = await channel.awaitMessages(m => m.author.id == this.#president.user.id, {time: 5000}); //REPLACE 5000 with 30000
+        await channel.send(predidentMention + " Please @mention your choice for the next candidate for chancellor within the next 30 seconds");
+        let collected = await channel.awaitMessages(m => m.author.id == this.#president.user.id, {time: 5000}); //REPLACE 5000 with 30000
         const first = collected.first();
         let nominatedChancellor;
         if(first !== undefined) {
             nominatedChancellor = getRawUID(first.content);
         }
+        const chancellorMention = getPrintableUserString(nominatedChancellor);
         if(nominatedChancellor !== null) {
-            await channel.send("You have nominated " + getPrintableUserString(nominatedChancellor));
+            await channel.send("You have nominated " + chancellorMention);
         }
+
         //voting session
+        const message = await channel.send("Please react with your vote for " + chancellorMention + " as the next candidate for chancellor within the next 30 seconds");
+        await message.react('👍')
+        await message.react('👎')
+        collected = await message.awaitReactions(reaction => (reaction.emoji.name == '👍' || reaction.emoji.name == '👎'), { max: 10, time: 5000 }) //REPLACE 5000 WITH 30000
+        let yesVotes = 0;
+        let noVotes = 0;
+        console.log(collected)
+        console.log(collected.array()[0].users.cache.array())
+        collected.map(reaction => {
+            if(reaction.emoji.name == '👍') {
+                reaction.users.cache.map(user => {
+                    if(!user.bot) {
+                        yesVotes += 1;
+                    }
+                })
+            }
+            else if(reaction.emoji.name == '👎'){
+                reaction.users.cache.map(user => {
+                    if(!user.bot) {
+                        noVotes += 1;
+                    }
+                })
+            }
 
-        //if pass
-
-        //if fail
+        });
+        //if vote passes
+        if(yesVotes > noVotes) {
+            this.#chancellor = this.#players.find(player => player.user.id == nominatedChancellor);
+            this.#chancellor.givePlacard(this.#chancellorPlacard)
+            this.#chancellorPlacard.moveTo(this.#chancellor);
+        }
+        //if vote fails
+        else {
+            this.#electionTracker.increase()
+            return false;
+        }
     //#endregion
     //legislative session
 
