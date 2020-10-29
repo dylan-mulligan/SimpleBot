@@ -179,7 +179,18 @@ class SecretHitler {
                 await player.user.send(createEmbed(card.title, card.content));
             });
             
+            //roll d20 for turn order
+            player.roll = rollDie(20);
         });
+
+        //sort players by roll (assign turn order)
+        for (let i = 0; i < this.#players.length; i++) {
+            for (let j = 0; j < this.#players.length; j++) {
+                if(this.#players[i].roll > this.#players[j].roll) {
+                    swap(this.#players[i], i ,j)
+                }
+            }
+        }ERR //test this
 
     //#region tests
         if(false) {
