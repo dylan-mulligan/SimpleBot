@@ -57,7 +57,7 @@ class Track {
         this.#spaces.forEach(space => {
             if(!space.filled) {
                 const power = space.fill(card);
-                filled += 1
+                this.#filled += 1
                 if(power !== "") {
                     return power;
                 }
