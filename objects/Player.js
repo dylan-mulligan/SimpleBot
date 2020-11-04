@@ -6,6 +6,7 @@ class Player {
     #alive;
     #roll;
     #placard;
+    #notHitler;
 
     constructor(user=null) {
         this.#user = user;
@@ -15,6 +16,7 @@ class Player {
         this.#alive = true;
         this.#roll = 0;
         this.#placard = null;
+        this.#notHitler = false;
     }
 
     //getters
@@ -39,6 +41,9 @@ class Player {
     get placard() {
         return this.#placard;
     }
+    get notHitler() {
+        return this.#notHitler;
+    }
 
     //setters
     set user(val) {
@@ -62,6 +67,9 @@ class Player {
     set placard(val) {
         this.#placard = val;
     }
+    set notHitler(val) {
+        this.#notHitler = val;
+    }
 
     //methods
     kill() {
@@ -80,6 +88,10 @@ class Player {
 
     givePlacard(placard) {
         this.#placard = placard;
+    }
+
+    removePlacard() {
+        this.#placard = null;
     }
 }
 

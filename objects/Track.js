@@ -5,6 +5,7 @@ class Track {
     #party;
     #spaces;
     #id;
+    #filled = 0;
     constructor(party="", id=null, spaces=null) {
         this.#party = party;
         if(id !== null) {
@@ -18,7 +19,7 @@ class Track {
                 this.#spaces = createArray(6, new TrackSpace());
             }
             else {
-                this.#spaces = this.getFascistSpaces();
+                this.#spaces = this.makeFascistSpaces();
             }
         }
     }
@@ -33,6 +34,9 @@ class Track {
     get id() {
         return this.#id;
     }
+    get filled() {
+        return this.#filled;
+    }
 
     //setters
     set party(val) {
@@ -44,12 +48,16 @@ class Track {
     set id(val) {
         this.#id = val;
     }
+    set filled(val) {
+        this.#filled = val;
+    }
 
     //methods
     fillNextSpace(card) {
         this.#spaces.forEach(space => {
             if(!space.filled) {
                 const power = space.fill(card);
+                filled += 1
                 if(power !== "") {
                     return power;
                 }
@@ -58,7 +66,7 @@ class Track {
         return null;
     }
 
-    getFascistSpaces() {
+    makeFascistSpaces() {
         let spaces = [];
         switch (this.#id) {
             case "1":
