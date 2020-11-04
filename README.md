@@ -13,8 +13,8 @@
 - Add level perks (ex. max bank bal increase)
 - Add invenotry/shop system
 - Add blackjack implimentation
-- Add Secret Hitler implimentation
+- Add Secret Hitler implimentation (~60-70% Complete)
 - Improve modular framework to streamline adding modules
 - Move user-data to a database
-- Improve data handling
+- Improve user-data handling
 - Move bot to dedicated server for 24/7 uptime (long-term goal)
