@@ -3,7 +3,8 @@ const { Placard } = require("./objects/Placard")
 const { ElectionTracker } = require("./objects/ElectionTracker")
 const { Track } = require("./objects/Track")
 const { shuffle, getPrintableUserString, createArray, 
-    createPlayerObject, createEmbed, rollDie, swap, getRawUID } = require("./utils")
+    createPlayerObject, createEmbed, rollDie, swap, getRawUID, 
+    getPlayerNames, createUUID, validateNumericArgument, randomInt, reactYesOrNo } = require("./utils")
 const { Player } = require("./objects/Player")
 
 class SecretHitler {
@@ -21,6 +22,8 @@ class SecretHitler {
     #electionTracker = new ElectionTracker();
     #president = new Player();
     #chancellor = new Player();
+    #policyDeck = [];
+    gameID = null;
     playerCount = 0;
 
     constructor(channel) {
@@ -28,6 +31,7 @@ class SecretHitler {
     }
 
     async secretHitler(channel) {
+        this.gameID = createUUID()
         if(await this.startGame(channel)) {
             await this.setup()
             const that = this;
@@ -58,10 +62,7 @@ class SecretHitler {
             });
         }
         if(this.#players.length >= 1) { //REPLACE 1 with 5
-            let playerNames = ""
-            this.#players.forEach(player => {
-                playerNames += getPrintableUserString(player.user.id) + " "
-            });
+            const playerNames = getPlayerNames(this.#players);
             message.edit('Times Up!\nPlayers: ' + playerNames + ". Check your DM's to see your role!");
         }
         else {
@@ -91,7 +92,7 @@ class SecretHitler {
     //create cards
 
         //create policy cards
-        let policyDeck = createArray(6, new Card(false, "Policy Card", "liberal", "Liberal Policy"))
+        this.#policyDeck = createArray(6, new Card(false, "Policy Card", "liberal", "Liberal Policy"))
         .concat(createArray(6, new Card(false, "Policy Card", "fascist", "Fascist Policy")));
 
         //create role cards
@@ -158,7 +159,7 @@ class SecretHitler {
     //distribute cards
 
         //shuffle decks
-        shuffle(policyDeck)
+        shuffle(this.#policyDeck)
         shuffle(roleDeck)
 
         //give role/membership/vote cards
@@ -175,7 +176,7 @@ class SecretHitler {
             player.assignRole(roleCard.value)
 
             //display cards
-            player.hand.forEach(async card => {
+            player.hand.forEach(async card => {//TODO: SEND CARD IMAGES INSTEAD
                 await player.user.send(createEmbed(card.title, card.content));
             });
             
@@ -190,12 +191,12 @@ class SecretHitler {
                     swap(this.#players[i], i ,j)
                 }
             }
-        }ERR //test this
+        }
 
     //#region tests
         if(false) {
             console.log(
-                policyDeck, liberalRoleCard.content, fascistRoleCard.content, hitlerRoleCard.content,
+                this.#policyDeck, liberalRoleCard.content, fascistRoleCard.content, hitlerRoleCard.content,
                 liberalMembershipCard.content, fascistMembershipCard.content, presidentPlacard.title,
                 chancellorPlacard.title, previousPresidentPlacard.title, previousChancellorPlacard.title,
                 electionTracker.count, voteNoCard.content, voteYesCard.content, fascistTrack.spaces, 
@@ -221,8 +222,14 @@ class SecretHitler {
     }
 
     async turn(channel) {
-    //#region election
+    //election
+        await this.election(channel)
+    //legislative session
+        await this.legislative(channel)
+    }
 
+    async election(channel) {
+        if(this.#gameOver) { return; }
         //pass president placard to next president candidate
         if(this.#presidentPlacard.PID !== null) {
             //moves president placard to next player and returns the 
@@ -253,62 +260,201 @@ class SecretHitler {
         const predidentMention = getPrintableUserString(this.#president.user.id);
         channel.send("The current presidential candidate is " + predidentMention);
 
-        //president chooces chancellor candidtate (cannot be previous pres or chancellor)
-        await channel.send(predidentMention + " Please @mention your choice for the next candidate for chancellor within the next 30 seconds");
+        //president chooces chancellor candidate (cannot be previous pres or chancellor)
+
+        //checks for previous chancellor/president status
+        let eligiblePlayers = [];
+        let ineligiblePlayers = [];
+        let confirmedPlayers = [];
+        this.#players.forEach(player => {
+            if(player.placard == null) { eligiblePlayers.push(player); }
+            else { ineligiblePlayers.push(player); }
+            if(players.notHitler) { confirmedPlayers.push(player) }
+        });
+        const eligiblePlayerNames = getPlayerNames(eligiblePlayers);
+        const ineligiblePlayerNames = getPlayerNames(ineligiblePlayers);
+        const confirmedPlayerNames = getPlayerNames(confirmedPlayers);
+
+        //prompts president for eligible candidate
+        await channel.send(predidentMention + " Please @mention your choice for the next candidate for chancellor within the next 30 seconds \
+        \nEligible Players: " + eligiblePlayerNames + "\nIneligible Players: " + ineligiblePlayerNames + "\nConfirmed NOT Hitler players: " + confirmedPlayerNames);
         let collected = await channel.awaitMessages(m => m.author.id == this.#president.user.id, {time: 5000}); //REPLACE 5000 with 30000
         const first = collected.first();
-        let nominatedChancellor;
+        let nominatedChancellorID;
+        let validChancellor = false;
         if(first !== undefined) {
-            nominatedChancellor = getRawUID(first.content);
+            nominatedChancellorID = getRawUID(first.content);
+            eligiblePlayers.forEach(player => {
+                if(player.user.id == nominatedChancellorID) {
+                    validChancellor = true;
+                }
+            });
         }
-        const chancellorMention = getPrintableUserString(nominatedChancellor);
-        if(nominatedChancellor !== null) {
+        if(!validChancellor) {
+            await channel.send("Invalid choice for chancellor! The next valid player will be nominated instead.");
+            const presidentIndex = this.#players.findIndex(player => player.user.id == this.#president.user.id);
+            let counter = 1
+            while (true) {
+                if(this.#players.length > presidentIndex + 1 + counter) { presidentIndex = -1; }
+                if(this.#players[presidentIndex + counter] !== undefined && this.#players[presidentIndex + counter].placard != null) { counter++; }
+                else if(counter > 10) { break; }
+                else { break; }
+            }
+            nominatedChancellorID = this.#players[presidentIndex + counter].user.id;
+        }
+        const chancellorMention = getPrintableUserString(nominatedChancellorID);
+        if(nominatedChancellorID !== null) {
             await channel.send("You have nominated " + chancellorMention);
         }
 
         //voting session
         const message = await channel.send("Please react with your vote for " + chancellorMention + " as the next candidate for chancellor within the next 30 seconds");
-        await message.react('👍')
-        await message.react('👎')
-        collected = await message.awaitReactions(reaction => (reaction.emoji.name == '👍' || reaction.emoji.name == '👎'), { max: 10, time: 5000 }) //REPLACE 5000 WITH 30000
-        let yesVotes = 0;
-        let noVotes = 0;
-        console.log(collected)
-        console.log(collected.array()[0].users.cache.array())
-        collected.map(reaction => {
-            if(reaction.emoji.name == '👍') {
-                reaction.users.cache.map(user => {
-                    if(!user.bot) {
-                        yesVotes += 1;
-                    }
-                })
-            }
-            else if(reaction.emoji.name == '👎'){
-                reaction.users.cache.map(user => {
-                    if(!user.bot) {
-                        noVotes += 1;
-                    }
-                })
-            }
+        const votes = await reactYesOrNo(message)
 
-        });
         //if vote passes
-        if(yesVotes > noVotes) {
-            this.#chancellor = this.#players.find(player => player.user.id == nominatedChancellor);
-            this.#chancellor.givePlacard(this.#chancellorPlacard)
-            this.#chancellorPlacard.moveTo(this.#chancellor);
+        if(votes[0] > votes[1]) {
+            this.#chancellor = this.#players.find(player => player.user.id == nominatedChancellorID);
+            if(this.#chancellor !== undefined) {
+                this.#chancellor.givePlacard(this.#chancellorPlacard)
+                this.#chancellorPlacard.moveTo(this.#chancellor);
+                channel.send("Vote Passed!\nPresident: " + getPrintableUserString(this.#president.user.id) + "\nChancellor: " + getPrintableUserString(this.#chancellor.user.id))
+            }
+            else {
+                console.log("Game " + this.gameID + ": Undefined chancellor nominee.")
+                return;
+            }
         }
         //if vote fails
         else {
             this.#electionTracker.increase()
+            channel.send("Vote Failed! Failed election tracker at ``" + this.#electionTracker.count + "/3``")
             return false;
         }
-    //#endregion
-    //legislative session
 
-        //president turn
+        //check if fascists win
+        if(this.#fascistTrack.filled >= 3) {
+            if(this.#chancellor.user.id == this.#hitler.user.id) {
+                channel.send("Fascists win! Hitler has been elected chancellor when 3 or more fascist policies have been played.")
+                this.#gameOver = true
+            }
+            else {
+                channel.send(chancellorMention + " is NOT Hitler!")
+                this.#chancellor.notHitler = true
+            }
+        }
+    }
 
-        //chancellor turn
+    async legislative(channel) {
+        if(this.#gameOver) { return; }
+    //president turn
+
+        //draw 3 policy cards
+        let policyCards = []
+        for (let i = 0; i < 3; i++) { policyCards.push(this.#policyDeck.pop()); }
+
+        //send president cards
+        policyCards.forEach(async card => { //TODO: SEND CARD IMAGES INSTEAD
+            await this.#president.user.send(createEmbed(card.title, card.content));
+        });
+
+        //president chooses card to discard
+        let discardAttempts = 0
+        while (true) {
+            let message = await this.#president.user.send("Enter card to discard (1, 2, or 3)")
+            let collected = await message.channel.awaitMessages({max: 1, time: 5000}); //REPLACE 5000 with 20000
+            let choice = collected.first().content
+            let discardIndex = -1;
+            if(validateNumericArgument([choice], 0)) {
+                switch (parseInt(choice)) {
+                    case 1:
+                        discardIndex = 0;
+                        break;
+                    case 2:
+                        discardIndex = 1;
+                        break;
+                    case 3:
+                        discardIndex = 2;
+                        break;
+                    default:
+                        break;
+                }
+            }
+            if(discardIndex >= 0) { break; }
+            await message.channel.send("Invalid card chosen, try again!")
+            discardAttempts++;
+            if(discardAttempts > 2) {
+                await message.channel.send("No valid choice has been made, choosing random card to discard.")
+                discardIndex = randomInt(0, policyCards.length-1)
+                break;
+            }
+        }
+        
+        //discard chosen card
+        let removedCard = policyCards.splice(discardIndex, 1)
+        await message.channel.send("Discarding this card.")
+        await message.channel.send(createEmbed(removedCard.title, removedCard.content));
+
+    //chancellor turn
+
+        //send remaining cards to chancellor
+        policyCards.forEach(async card => { //TODO: SEND CARD IMAGES INSTEAD
+            await this.#chancellor.user.send(createEmbed(card.title, card.content));
+        });
+
+        //chancellor decides on veto
+        if(this.#fascistTrack.filled == 5) {
+            const message = await this.#chancellor.user.send("Since there are 5 fascist policy cards played, you, as the chancellor, \
+            have the option to veto the current legislative session. React with your decision")
+            const votes = await reactYesOrNo(message)
+            if(votes[0] > votes[1]) { //TODO: VETO SESSION
+                //veto starts
+            }
+            else {
+                await message.channel.send("You have opted not to veto the current legislative session.")
+            }
+        }
+
+        //chancellor chooses card to discard
+        discardAttempts = 0
+        while (true) {
+            const message = await this.#chancellor.user.send("Enter card to discard (1 or 2)")
+            const collected = await message.channel.awaitMessages({max: 1, time: 5000}); //REPLACE 5000 with 30000
+            const choice = collected.first().content
+            discardIndex = -1;
+            if(validateNumericArgument([choice], 0)) {
+                switch (parseInt(choice)) {
+                    case 1:
+                        discardIndex = 0;
+                        break;
+                    case 2:
+                        discardIndex = 1;
+                        break;
+                    default:
+                        break;
+                }
+            }
+            if(discardIndex >= 0) { break; }
+            await message.channel.send("Invalid card chosen, try again!")
+            discardAttempts++;
+            if(discardAttempts > 2) {
+                await message.channel.send("No valid choice has been made, choosing random card to discard.")
+                discardIndex = randomInt(0, policyCards.length-1)
+                break;
+            }
+        }
+
+        //discard chosen card
+        let removedCard = policyCards.splice(discardIndex, 1)
+        await message.channel.send("Discarding this card.")
+        await message.channel.send(createEmbed(removedCard.title, removedCard.content));
+
+        //play remaining card
+        if(policyCards[0].value == "fascist") {
+            this.#fascistTrack.fillNextSpace(policyCards.pop())
+        }
+        else {
+            this.#liberalTrack.fillNextSpace(policyCards.pop())
+        }
 
     }
 
