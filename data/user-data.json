@@ -115,5 +115,21 @@
       "bankrob": 0
     },
     "inventory": {}
+  },
+  "287707247839150091": {
+    "walletBalance": 5000,
+    "bankBalance": 1000,
+    "bankCapacity": 20000,
+    "username": "PredictableAsAHouseTour",
+    "level": 0,
+    "xp": 0,
+    "cooldowns": {
+      "search": 0,
+      "hunt": 0,
+      "fish": 0,
+      "rob": 0,
+      "bankrob": 0
+    },
+    "inventory": {}
   }
 }
