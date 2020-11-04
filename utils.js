@@ -176,10 +176,46 @@ function createPlayerObject(user) {
     return new Player(user)
 }
 
+function getPlayerNames(players) {
+    let playerNames = "";
+    players.forEach(player => {
+        playerNames += getPrintableUserString(player.user.id) + " "
+    });
+    return playerNames;
+}
+
+function createUUID() {
+    return Math.floor(Math.pow(Math.random(), Math.pow(Math.random(), Math.random())) * 1000000000000000)
+}
+
+async function reactYesOrNo(message) {
+    await message.react('👍')
+    await message.react('👎')
+
+    collected = await message.awaitReactions(reaction => (reaction.emoji.name == '👍' || reaction.emoji.name == '👎'), { max: 2, time: 5000 }) //REPLACE 5000 WITH 30000
+    let yesVotes = 0;
+    let noVotes = 0;
+
+    collected.map(reaction => {
+        if(reaction.emoji.name == '👍') {
+            reaction.users.cache.map(user => {
+                if(!user.bot) { yesVotes += 1; }
+            })
+        }
+        else if(reaction.emoji.name == '👎'){
+            reaction.users.cache.map(user => {
+                if(!user.bot) { noVotes += 1; }
+            })
+        }
+
+    });
+    return [yesVotes, noVotes]
+}
+
 module.exports = { 
     validateNumericArgument, getPrintableUserString, getRawUID, validateUID, 
     createUser, createEmbed, getToken, getUsername, hasBotAdminPerm, giveAdmin, 
     rollDie, removeAdmin, getPrintableRoleString, validateMemory, offCooldown,
     randomInt, randomChance, onCooldown, shuffle, createArray, createPlayerObject,
-    swap
+    swap, getPlayerNames, createUUID, reactYesOrNo
 }
