@@ -227,17 +227,17 @@ class SecretHitler {
     }
 
     async turn(channel) {
-    //election
-        await this.election(channel)
-    //legislative session
-        const power = await this.legislative(channel)
-    //executive action
-        const that = this
-        setTimeout(function() {
-            that.executive(channel, power);
-        }, 5000); //REPLACE 5000 with 10000 or 15000
-    
-        //await this.executive(channel, power)
+        while(!this.#gameOver) {
+        //election
+            await this.election(channel)
+        //legislative session
+            const power = await this.legislative(channel)
+        //executive action
+            const that = this
+            setTimeout(function() {
+                that.executive(channel, power);
+            }, 10000); //REPLACE 5000 with 10000 or 15000
+        }
     }
 
     async election(channel) {
@@ -307,7 +307,7 @@ class SecretHitler {
             let counter = 1
             while (true) {
                 if(this.playerCount > presidentIndex + 1 + counter) { presidentIndex = -1; }
-                if(this.#players[presidentIndex + counter] !== undefined && this.#players[presidentIndex + counter].placard != null) { counter++; }
+                if(this.#players[presidentIndex + counter] !== undefined && this.#players[presidentIndex + counter].placard !== null) { counter++; }
                 else if(counter > 10) { break; }
                 else { break; }
             }
@@ -334,6 +334,10 @@ class SecretHitler {
     }
 
     async vote(channel, candidate, position) {
+        if(candidate == undefined || candidate == null) { 
+            console.log("Game " + this.gameID + ": Invalid candidate.")
+            return null;
+        }
         //voting session
         const message = await channel.send("Please react with your vote for " + getPrintableUserString(candidate.user.id) + " as the next candidate for " + position + " within the next 30 seconds");
         const votes = await reactYesOrNo(message)
@@ -423,10 +427,10 @@ class SecretHitler {
         }
         
         //discard chosen card
-        let removedCard = policyCards.splice(discardIndex, 1); //TODO: CARD IS UNDEFINED
-        console.log("PRES REMOVED CARD: " + removedCard)
+        let removedCard = policyCards.splice(discardIndex, 1)[0];
         await this.#president.user.send("Discarding this card.");
-        await this.#president.user.send(createEmbed(removedCard.title, removedCard.content));
+        let discardedCardMessage = await this.#president.user.send(createEmbed(removedCard.title, removedCard.content));
+        discardedCardMessage.delete({"timeout": 5000}).catch(e => console.log(e)); //REPLACE 5000 with 20000
 
     //chancellor turn
 
@@ -480,12 +484,10 @@ class SecretHitler {
         }
 
         //discard chosen card
-        console.log("2 POLICY CARDS: " + policyCards)
-        removedCard = policyCards.splice(discardIndex, 1)
-        console.log("1 POLICY CARD: " + policyCards)
-        console.log("CHANC REMOVED CARD: " + removedCard)
+        removedCard = policyCards.splice(discardIndex, 1)[0];
         await this.#chancellor.user.send("Discarding this card.") //TODO: FIX THIS
-        await this.#chancellor.user.send(createEmbed(removedCard.title, removedCard.content));
+        discardedCardMessage = await this.#chancellor.user.send(createEmbed(removedCard.title, removedCard.content));
+        discardedCardMessage.delete({"timeout": 5000}).catch(e => console.log(e)); //REPLACE 5000 with 20000
 
         //play remaining card
         const playedCard = policyCards.pop();
