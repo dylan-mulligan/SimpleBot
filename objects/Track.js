@@ -54,16 +54,19 @@ class Track {
 
     //methods
     fillNextSpace(card) {
-        this.#spaces.forEach(space => {
-            if(!space.filled) {
-                const power = space.fill(card);
-                this.#filled += 1
-                if(power !== "") {
-                    return power;
-                }
+        let emptySpaceIndex;
+        for (let i = 0; i < this.#spaces.length; i++) {
+            if(!this.#spaces[i].filled) {
+                emptySpaceIndex = i
+                break;
             }
-        });
-        return null;
+        }
+        
+        this.#spaces[emptySpaceIndex].card = card;
+        this.#spaces[emptySpaceIndex].filled = true;
+        this.#filled++;
+
+        return this.#spaces[emptySpaceIndex].power;
     }
 
     makeFascistSpaces() {
