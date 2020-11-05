@@ -144,7 +144,7 @@ async function CLI(message, args) { //main command line interface that parses us
             if(hasBotAdminPerm(guild, gc.BOT_ADMIN_ROLE_NAME, message.author.id)) {
                 if(validateNumericArgument(args, 1) && 100 >= args[1] > 0 && message.channel.type !== "dm") {
                     await message.channel.bulkDelete(parseInt(args[1]) + 1).catch(e => console.log(e));
-                    await message.channel.send("Cleared **" + args[1] + "** messages.").then(msg => msg.delete({"timeout": 5000})).catch(e => console.log(e));;
+                    await message.channel.send("Cleared **" + args[1] + "** messages.").then(msg => msg.delete({"timeout": 5000})).catch(e => console.log(e));
                 }
                 else {  message.channel.send(gc.HELP_MESSAGE); } //if not enough args, print help message
             }
