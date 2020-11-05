@@ -232,7 +232,12 @@ class SecretHitler {
     //legislative session
         const power = await this.legislative(channel)
     //executive action
-        await this.executive(channel, power)
+        const that = this
+        setTimeout(function() {
+            that.executive(channel, power);
+        }, 5000); //REPLACE 5000 with 10000 or 15000
+    
+        //await this.executive(channel, power)
     }
 
     async election(channel) {
@@ -289,7 +294,7 @@ class SecretHitler {
         let nominatedChancellor;
         let validChancellor = false;
         if(first !== undefined) {
-            nominatedChancellor = this.#players.filter(p => p.user.id == getRawUID(first.content()))[0];
+            nominatedChancellor = this.#players.filter(p => p.user.id == getRawUID(first.content))[0];
             eligiblePlayers.forEach(player => {
                 if(player.user.id == nominatedChancellor.user.id) {
                     validChancellor = true;
@@ -381,7 +386,8 @@ class SecretHitler {
         //send president cards
         await channel.send(getPrintableUserString(this.#president.user.id) + " has drawn 3 cards, they will discard 1 card and pass the remaining 2 to " + getPrintableUserString(this.#chancellor.user.id))
         policyCards.forEach(async card => { //TODO: SEND CARD IMAGES INSTEAD
-            await this.#president.user.send(createEmbed(card.title, card.content));
+            const message = await this.#president.user.send(createEmbed(card.title, card.content));
+            message.delete({"timeout": 5000}).catch(e => console.log(e)); //REPLACE 5000 with 20000
         });
 
         //president chooses card to discard
@@ -418,7 +424,7 @@ class SecretHitler {
         
         //discard chosen card
         let removedCard = policyCards.splice(discardIndex, 1); //TODO: CARD IS UNDEFINED
-        console.log(removedCard)
+        console.log("PRES REMOVED CARD: " + removedCard)
         await this.#president.user.send("Discarding this card.");
         await this.#president.user.send(createEmbed(removedCard.title, removedCard.content));
 
@@ -426,7 +432,8 @@ class SecretHitler {
 
         //send remaining cards to chancellor
         policyCards.forEach(async card => { //TODO: SEND CARD IMAGES INSTEAD
-            await this.#chancellor.user.send(createEmbed(card.title, card.content));
+            const message = await this.#chancellor.user.send(createEmbed(card.title, card.content));
+            message.delete({"timeout": 5000}).catch(e => console.log(e)); //REPLACE 5000 with 20000
         });
 
         //chancellor decides on veto
@@ -473,29 +480,32 @@ class SecretHitler {
         }
 
         //discard chosen card
+        console.log("2 POLICY CARDS: " + policyCards)
         removedCard = policyCards.splice(discardIndex, 1)
-        await this.#president.user.send("Discarding this card.")
-        await this.#president.user.send(createEmbed(removedCard.title, removedCard.content));
+        console.log("1 POLICY CARD: " + policyCards)
+        console.log("CHANC REMOVED CARD: " + removedCard)
+        await this.#chancellor.user.send("Discarding this card.") //TODO: FIX THIS
+        await this.#chancellor.user.send(createEmbed(removedCard.title, removedCard.content));
 
         //play remaining card
         const playedCard = policyCards.pop();
         let power;
-        if(policyCards[0].value == "fascist") {
+        if(playedCard.value == "fascist") {
             power = this.#fascistTrack.fillNextSpace(playedCard)
-            channel.message.send("A fascist card has been played! (" + this.#fascistTrack.filled + "/6)")
+            await channel.send("A fascist card has been played! (" + this.#fascistTrack.filled + "/6)")
         }
         else {
             power = this.#liberalTrack.fillNextSpace(playedCard)
-            channel.message.send("A liberal card has been played! (" + this.#liberalTrack.filled + "/6)")
+            await channel.send("A liberal card has been played! (" + this.#liberalTrack.filled + "/6)")
         }
 
         //check for game end
         if(this.#fascistTrack.filled == 6) {
-            channel.send("Fascists win! 6 Fascist policies have been inacted.")
+            await channel.send("Fascists win! 6 Fascist policies have been inacted.")
             this.#gameOver = true
         }
         else if(this.#liberalTrack.filled == 6) {
-            channel.send("Liberals win! 6 Liberal policies have been inacted.")
+            await channel.send("Liberals win! 6 Liberal policies have been inacted.")
             this.#gameOver = true
         }
 
@@ -509,16 +519,16 @@ class SecretHitler {
         if(power !== undefined && power !== null) {
             switch (power) {
                 case "inspectPlayer":
-                    await inspectPlayer(channel)
+                    await this.inspectPlayer(channel)
                     break;
                 case "inspectCards":
-                    await inspectCards(channel)
+                    await this.inspectCards(channel)
                     break;
                 case "killPlayer":
-                    await killPlayer(channel)
+                    await this.killPlayer(channel)
                     break;
                 case "specialElection":
-                    await specialElection(channel)
+                    await this.specialElection(channel)
                     break;
                 default:
                     break;
@@ -554,27 +564,31 @@ class SecretHitler {
         await channel.send(getPrintableUserString(this.#president.user.id) + " has the power of ``Inspect Player``, @mention any eligible player to inspect within the next 30 seconds." +
         "\nEligible Players: " + eligiblePlayerNames + "\nIneligible Players: " + ineligiblePlayerNames + 
         "\nConfirmed NOT Hitler players: " + confirmedPlayerNames)
+        
+        //gives president 2 attempts to mention a valid player to inspect
         let mentionAttempts = 0
         let inspectedPlayer = null;
         while(true) {
             let collected = await channel.awaitMessages(m => m.author.id == this.#president.user.id, {max: 1, time: 5000}); //REPLACE 5000 with 30000
             const first = collected.first();
             if(first !== undefined) {
-                inspectedPlayer = this.#players.filter(p => p.user.id == getRawUID(first.content()))[0];
+                inspectedPlayer = this.#players.filter(p => p.user.id == getRawUID(first.content))[0];
                 if(inspectedPlayer.user.id == this.#president.user.id) { inspectedPlayer = null; }
             }
 
             if(inspectedPlayer !== null) { break; }
 
-            await message.channel.send("Invalid player chosen, try again!")
+            await channel.send("Invalid player chosen, try again!")
             mentionAttempts++;
 
             if(mentionAttempts > 2) {
-                await message.channel.send("No valid choice has been made, choosing random player to inspect.")
+                await channel.send("No valid choice has been made, choosing random player to inspect.")
                 let tempInspectedPlayer = null;
                 let randomAttempts = 0
                 while((tempInspectedPlayer == null || tempInspectedPlayer.user.id == this.#president.user.id) && randomAttempts < 10) {
-                    tempInspectedPlayer = this.#players[randomInt(0, this.playerCount-1)]
+                    const randomIndex = randomInt(0, this.playerCount)
+                    console.log(randomIndex)
+                    tempInspectedPlayer = this.#players[randomIndex]
                     randomAttempts++;
                 }
                 inspectedPlayer = tempInspectedPlayer
@@ -583,12 +597,13 @@ class SecretHitler {
         }
 
         //announce selected player
-        channel.send(getPrintableUserString(inspectedPlayer.user.id) + " will be inspected by " + getPrintableUserString(this.#president.user.id) + ".")
+        await channel.send(getPrintableUserString(inspectedPlayer.user.id) + " will be inspected by " + getPrintableUserString(this.#president.user.id) + ".")
 
         //inspect selected player
         const membershipCard = inspectedPlayer.hand[1];
         await this.#president.user.send("You have recieved " + inspectedPlayer.user.username + "'s membership card. It will automatically disappear in 30 seconds.")
-        await this.#president.user.send(createEmbed(membershipCard.title, membershipCard.content)).delete({"timeout": 5000}).catch(e => console.log(e)); //REPLACE 5000 with 30000
+        const message = await this.#president.user.send(createEmbed(membershipCard.title, membershipCard.content))
+        message.delete({"timeout": 5000}).catch(e => console.log(e)); //REPLACE 5000 with 30000
     }
 
     async specialElection(channel) {
@@ -609,17 +624,17 @@ class SecretHitler {
             let collected = await channel.awaitMessages(m => m.author.id == this.#president.user.id, {max: 1, time: 5000}); //REPLACE 5000 with 30000
             const first = collected.first();
             if(first !== undefined) {
-                inspectedPlayer = this.#players.filter(p => p.user.id == getRawUID(first.content()))[0];
+                inspectedPlayer = this.#players.filter(p => p.user.id == getRawUID(first.content))[0];
                 if(inspectedPlayer.user.id == this.#president.user.id) { inspectedPlayer = null; }
             }
 
             if(inspectedPlayer !== null) { break; }
 
-            await message.channel.send("Invalid player chosen, try again!")
+            await channel.send("Invalid player chosen, try again!")
             mentionAttempts++;
 
             if(mentionAttempts > 2) {
-                await message.channel.send("No valid choice has been made, choosing random player to nominate.")
+                await channel.send("No valid choice has been made, choosing random player to nominate.")
                 let tempPresidentialCandidate = null;
                 let randomAttempts = 0
                 while((tempPresidentialCandidate == null || tempPresidentialCandidate.user.id == this.#president.user.id) && randomAttempts < 10) {
@@ -646,40 +661,40 @@ class SecretHitler {
         "\nEligible Players: " + eligiblePlayerNames + "\nIneligible Players: " + ineligiblePlayerNames + 
         "\nConfirmed NOT Hitler players: " + confirmedPlayerNames)
         let mentionAttempts = 0
-        let inspectedPlayer = null;
+        let killedPlayer = null;
         while(true) {
             let collected = await channel.awaitMessages(m => m.author.id == this.#president.user.id, {max: 1, time: 5000}); //REPLACE 5000 with 30000
             const first = collected.first();
             if(first !== undefined) {
-                inspectedPlayer = this.#players.filter(p => p.user.id == getRawUID(first.content()))[0];
-                if(inspectedPlayer.user.id == this.#president.user.id) { inspectedPlayer = null; }
+                killedPlayer = this.#players.filter(p => p.user.id == getRawUID(first.content))[0];
+                if(killedPlayer.user.id == this.#president.user.id) { killedPlayer = null; }
             }
 
-            if(inspectedPlayer !== null) { break; }
+            if(killedPlayer !== null) { break; }
 
-            await message.channel.send("Invalid player chosen, try again!")
+            await channel.send("Invalid player chosen, try again!")
             mentionAttempts++;
 
             if(mentionAttempts > 2) {
-                await message.channel.send("No valid choice has been made, choosing random player to inspect.")
-                let tempInspectedPlayer = null;
+                await channel.send("No valid choice has been made, choosing random player to kill.")
+                let tempKilledPlayer = null;
                 let randomAttempts = 0
-                while((tempInspectedPlayer == null || tempInspectedPlayer.user.id == this.#president.user.id) && randomAttempts < 10) {
-                    tempInspectedPlayer = this.#players[randomInt(0, this.playerCount-1)]
+                while((tempKilledPlayer == null || tempKilledPlayer.user.id == this.#president.user.id) && randomAttempts < 10) {
+                    tempKilledPlayer = this.#players[randomInt(0, this.playerCount-1)]
                     randomAttempts++;
                 }
-                inspectedPlayer = tempInspectedPlayer
+                killedPlayer = tempKilledPlayer
                 break;
             }
         }
 
         //announce selected player
-        channel.send(getPrintableUserString(inspectedPlayer.user.id) + " has decided to kill " + getPrintableUserString(this.#president.user.id) + ".")
+        await channel.send(getPrintableUserString(this.#president.user.id) + " has decided to kill " + getPrintableUserString(killedPlayer.user.id) + ".")
 
-        //inspect selected player
-        const membershipCard = inspectedPlayer.hand[1];
-        await this.#president.user.send("You have recieved " + inspectedPlayer.user.username + "'s membership card. It will automatically disappear in 30 seconds.")
-        await this.#president.user.send(createEmbed(membershipCard.title, membershipCard.content)).delete({"timeout": 5000}).catch(e => console.log(e)); //REPLACE 5000 with 30000
+        //kill selected player and remove them from the player list
+        await killedPlayer.user.send("You have been eliminated from the game, however, your party may still win!")
+        this.#players.splice(this.#players.findIndex(killedPlayer), 1)
+        this.playerCount -= 1;
     }
 
     endGame() {
