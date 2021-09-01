@@ -5,6 +5,13 @@
 * blackjack.
 */
 
+/*
+TODO:
+gamble/blackjack not meet min bal case
+fix/update CLI
+retest everything
+*/
+
 //Discord interface setup
 const Discord = require('discord.js');
 const bot = new Discord.Client();
@@ -33,7 +40,7 @@ bot.login(token);
 try { //TODO: PROPER TRY/CATCH FOR INVALID TOKEN
     bot.on('ready', () =>{
     console.log("Login successful!");
-    }) 
+    })
 }
 catch { console.log("Login failed! Exiting..."); return; }
 
@@ -51,19 +58,19 @@ bot.on('message', message=>{
             //if message has correct prefix, run CLI
             if(message.content.startsWith(gc.PREFIX)) {
                 if(message.content !== "") {
-                    createUser(userData, "0000", "EXAMPLE");
+                    createUser(userData, "0000", "EXAMPLE"); //create sample user TODO: why?
+                    
+                    //gross tokenization of message into arguments
                     let args = []
-                    message.content.substring(gc.PREFIX.length).split(" ").map(tempArg => {if(tempArg != "") { args.push(tempArg); }}); //tokenizes message
-                    if (!userData[UID]) { createUser(userData, UID, message.author.username); } //ensures user exists within data structure to avoid errors
-                    validateMemory(userData, UID);
+                    message.content.substring(gc.PREFIX.length).split(" ").map(tempArg => {if(tempArg != "") { args.push(tempArg); }});
+                    
+                    //create user if user does not exist
+                    if (!userData[UID]) { createUser(userData, UID, message.author.username); }
+                    validateMemory(userData, UID); //ensure memory values exist to prevent errors accessing said values
                     CLI(message, args); //main CLI function
                 }
-                try{
-                    userData[UID].username = message.author.username; //poor implementation of username updating every message //TODO: FIX THIS POOP
-                }
-                catch(e) {
-                    console.log(e + message.author.username);
-                }
+                try{ userData[UID].username = message.author.username; } //updates username in userData if user exists
+                catch(e) { console.log(e + " " + message.author.username); } //print to console if unable to update username
             }
             fs.writeFileSync("./data/user-data.json", JSON.stringify(userData, null, 2), console.error);
             guild = null //resets current server after each message

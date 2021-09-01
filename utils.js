@@ -113,6 +113,17 @@ function rollDie(sides) { //"rolls a die" with given sides and returns the resul
     return Math.round(Math.random() * sides);
 }
 
+function drawCard(deck, n) { //draws n cards from a given deck of cards
+    let cards = Array(0);
+    let card = null;
+    n += 1; //fix for compact while loop off one index
+    while ((n -= 1) > 0) { //draws n times
+        swap(deck, deck.indexOf(deck[Math.random()]), deck.length() - 1); //picks random card and moves to end of array
+        cards.push(deck.pop()); //pops picked card from array
+    }
+    return cards;
+}
+
 function validateMemory(userData, UID) {
     for (const key in userData["0000"]) {
         if (!userData[UID].hasOwnProperty(key)) {
@@ -172,6 +183,33 @@ function createArray(size, value) {
     return deck;
 }
 
+function createDeck() {
+    let deck = Array(52);
+    let suit = "";
+    for (let i = 0; i < 4; i++) {
+        switch (i) {
+            case 0:
+                suit = "D"
+                break;
+            case 1:
+                suit = "H"
+                break;
+            case 2:
+                suit = "C"
+                break;
+            case 3:
+                suit = "S"
+                break;
+            default:
+                break;
+        }
+        for (let j = 0; j < 13; j++) {
+            deck[(i * 13) + j] = suit + (j+1); //Ace of Diamonds = "D1"; King of Hearts = "H13"
+        }
+    }
+    return deck;
+}
+
 function createPlayerObject(user) {
     return new Player(user)
 }
@@ -217,5 +255,5 @@ module.exports = {
     createUser, createEmbed, getToken, getUsername, hasBotAdminPerm, giveAdmin, 
     rollDie, removeAdmin, getPrintableRoleString, validateMemory, offCooldown,
     randomInt, randomChance, onCooldown, shuffle, createArray, createPlayerObject,
-    swap, getPlayerNames, createUUID, reactYesOrNo
+    swap, getPlayerNames, createUUID, reactYesOrNo, createDeck, drawCard
 }

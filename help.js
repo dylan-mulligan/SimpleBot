@@ -1,10 +1,10 @@
 const { createEmbed } = require("./utils")
 function help(PREFIX, MIN_BET_AMOUNT, message, args) {
     if(args.length > 1) {
-        commandHelp(message, PREFIX, MIN_BET_AMOUNT, args[1])
+        commandHelp(message, PREFIX, MIN_BET_AMOUNT, args[1]);
     }
     else {
-        basicHelp(message)
+        basicHelp(message);
     }
     return;
 }
@@ -71,7 +71,8 @@ function commandHelp(message, PREFIX, MIN_BET_AMOUNT, command) {
         case "blackjack": //calls blackjack function
             description = 
             "Gambles a specified amount (greater than " + MIN_BET_AMOUNT + ") \
-            on a game of blackjack against the bot. Highest score under 22 wins.";
+            on a game of blackjack against the bot. \nRULES: \n1. Highest score under 22 wins. \
+            \n2. The bot must hit until it has 17 or more. \n3. Ties return bets.";
             usage = PREFIX + command + "<bet amount>";
             aliases = "``blackjack``";
             break;

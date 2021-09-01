@@ -1,6 +1,6 @@
 const FILEPATH = '../Tokens/SharkPogBot.txt';
 const PREFIX = '=';
-const BOT_VERSION = "0.1";
+const BOT_VERSION = "0.2";
 const BOT_NAME = "SharkPogBot";
 const BOT_ID = "750833421252689930";
 const BOT_ADMIN_ROLE_NAME = "SharkPogBotAdmin"
