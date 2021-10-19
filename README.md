@@ -1,4 +1,4 @@
-# SharkPogBot
+# SimpleBot
 
 ## Features
 - Personal user economy system (bank/wallet)
